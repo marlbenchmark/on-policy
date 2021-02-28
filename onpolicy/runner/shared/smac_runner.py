@@ -9,7 +9,7 @@ def _t2n(x):
     return x.detach().cpu().numpy()
 
 class SMACRunner(Runner):
-    """Runner class to perform training, evaluation. and data collection for SMAC.. See parent class for details."""
+    """Runner class to perform training, evaluation. and data collection for SMAC. See parent class for details."""
     def __init__(self, config):
         super(SMACRunner, self).__init__(config)
 
