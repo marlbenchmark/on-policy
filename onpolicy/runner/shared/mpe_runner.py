@@ -1,18 +1,13 @@
-    
 import time
-import wandb
-import os
 import numpy as np
-from itertools import chain
 import torch
-
-from onpolicy.utils.util import update_linear_schedule
 from onpolicy.runner.shared.base_runner import Runner
 
 def _t2n(x):
     return x.detach().cpu().numpy()
 
 class MPERunner(Runner):
+    """Runner class to perform training, evaluation. and data collection for the MPEs. See parent class for details."""
     def __init__(self, config):
         super(MPERunner, self).__init__(config)
 
@@ -186,6 +181,7 @@ class MPERunner(Runner):
 
     @torch.no_grad()
     def render(self):
+        """Visualize the env."""
         envs = self.envs
         
         all_frames = []
