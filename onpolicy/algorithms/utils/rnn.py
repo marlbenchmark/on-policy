@@ -3,6 +3,7 @@ import torch.nn as nn
 
 """RNN modules."""
 
+
 class RNNLayer(nn.Module):
     def __init__(self, inputs_dim, outputs_dim, recurrent_N, use_orthogonal):
         super(RNNLayer, self).__init__()
@@ -22,8 +23,8 @@ class RNNLayer(nn.Module):
 
     def forward(self, x, hxs, masks):
         if x.size(0) == hxs.size(0):
-            x, hxs = self.rnn(x.unsqueeze(0), (hxs * masks.repeat(1, self._recurrent_N).unsqueeze(-1)).transpose(0, 1).contiguous())
-            #x= self.gru(x.unsqueeze(0))
+            x, hxs = self.rnn(x.unsqueeze(0),
+                              (hxs * masks.repeat(1, self._recurrent_N).unsqueeze(-1)).transpose(0, 1).contiguous())
             x = x.squeeze(0)
             hxs = hxs.transpose(0, 1)
         else:
@@ -62,7 +63,7 @@ class RNNLayer(nn.Module):
                 # We can now process steps that don't have any zeros in masks together!
                 # This is much faster
                 start_idx = has_zeros[i]
-                end_idx = has_zeros[i + 1]               
+                end_idx = has_zeros[i + 1]
                 temp = (hxs * masks[start_idx].view(1, -1, 1).repeat(self._recurrent_N, 1, 1)).contiguous()
                 rnn_scores, hxs = self.rnn(x[start_idx:end_idx], temp)
                 outputs.append(rnn_scores)
