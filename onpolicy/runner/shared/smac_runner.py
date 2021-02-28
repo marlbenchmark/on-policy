@@ -1,19 +1,15 @@
-    
 import time
 import wandb
-import os
 import numpy as np
-from itertools import chain
 from functools import reduce
 import torch
-
-from onpolicy.utils.util import update_linear_schedule
 from onpolicy.runner.shared.base_runner import Runner
 
 def _t2n(x):
     return x.detach().cpu().numpy()
 
 class SMACRunner(Runner):
+    """Runner class to perform training, evaluation. and data collection for SMAC.. See parent class for details."""
     def __init__(self, config):
         super(SMACRunner, self).__init__(config)
 
