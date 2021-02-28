@@ -77,7 +77,7 @@ class R_Actor(nn.Module):
         :param masks: (torch.Tensor) mask tensor denoting if hidden states should be reinitialized to zeros.
         :param available_actions: (torch.Tensor) denotes which actions are available to agent
                                                               (if None, all actions available)
-        :param active_masks: (bool) whether to mask out value function outputs if an agent is dead.
+        :param active_masks: (torch.Tensor) denotes whether an agent is active or dead.
 
         :return action_log_probs: (torch.Tensor) log probabilities of the input actions.
         :return dist_entropy: (torch.Tensor) action distribution entropy for the given inputs.
