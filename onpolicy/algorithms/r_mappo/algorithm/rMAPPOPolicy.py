@@ -97,7 +97,7 @@ class R_MAPPOPolicy:
         :param masks: (np.ndarray) denotes points at which RNN states should be reset.
         :param available_actions: (np.ndarray) denotes which actions are available to agent
                                   (if None, all actions available)
-        :param active_masks: (bool) whether to mask out value function outputs if an agent is dead.
+        :param active_masks: (torch.Tensor) denotes whether an agent is active or dead.
 
         :return values: (torch.Tensor) value function predictions.
         :return action_log_probs: (torch.Tensor) log probabilities of the input actions.
