@@ -13,6 +13,7 @@ def _t2n(x):
     return x.detach().cpu().numpy()
 
 class HanabiRunner(Runner):
+    """Runner class to perform training, evaluation. and data collection for Hanabi. See parent class for details."""
     def __init__(self, config):
         super(HanabiRunner, self).__init__(config)
         self.true_total_num_steps = 0
