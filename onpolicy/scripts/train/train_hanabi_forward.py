@@ -6,14 +6,12 @@ import socket
 import setproctitle
 import numpy as np
 from pathlib import Path
-
 import torch
-
 from onpolicy.config import get_config
-
 from onpolicy.envs.hanabi.Hanabi_Env import HanabiEnv
 from onpolicy.envs.env_wrappers import ChooseSubprocVecEnv, ChooseDummyVecEnv
 
+"""Train script for Hanabi."""
 
 def make_train_env(all_args):
     def get_env_fn(rank):
@@ -28,7 +26,9 @@ def make_train_env(all_args):
                 raise NotImplementedError
             env.seed(all_args.seed + rank * 1000)
             return env
+
         return init_env
+
     if all_args.n_rollout_threads == 1:
         return ChooseDummyVecEnv([get_env_fn(0)])
     else:
@@ -49,7 +49,9 @@ def make_eval_env(all_args):
                 raise NotImplementedError
             env.seed(all_args.seed * 50000 + rank * 10000)
             return env
+
         return init_env
+
     if all_args.n_eval_rollout_threads == 1:
         return ChooseDummyVecEnv([get_env_fn(0)])
     else:
@@ -74,7 +76,8 @@ def main(args):
     if all_args.algorithm_name == "rmappo":
         assert (all_args.use_recurrent_policy or all_args.use_naive_recurrent_policy), ("check recurrent policy!")
     elif all_args.algorithm_name == "mappo":
-        assert (all_args.use_recurrent_policy == False and all_args.use_naive_recurrent_policy == False), ("check recurrent policy!")
+        assert (all_args.use_recurrent_policy == False and all_args.use_naive_recurrent_policy == False), (
+            "check recurrent policy!")
     else:
         raise NotImplementedError
 
@@ -92,7 +95,8 @@ def main(args):
         torch.set_num_threads(all_args.n_training_threads)
 
     # run dir
-    run_dir = Path(os.path.split(os.path.dirname(os.path.abspath(__file__)))[0] + "/results") / all_args.env_name / all_args.hanabi_name / all_args.algorithm_name / all_args.experiment_name
+    run_dir = Path(os.path.split(os.path.dirname(os.path.abspath(__file__)))[
+                       0] + "/results") / all_args.env_name / all_args.hanabi_name / all_args.algorithm_name / all_args.experiment_name
     if not run_dir.exists():
         os.makedirs(str(run_dir))
 
@@ -103,8 +107,8 @@ def main(args):
                          entity=all_args.user_name,
                          notes=socket.gethostname(),
                          name=str(all_args.algorithm_name) + "_" +
-                         str(all_args.experiment_name) +
-                         "_seed" + str(all_args.seed),
+                              str(all_args.experiment_name) +
+                              "_seed" + str(all_args.seed),
                          group=all_args.hanabi_name,
                          dir=str(run_dir),
                          job_type="training",
@@ -113,7 +117,8 @@ def main(args):
         if not run_dir.exists():
             curr_run = 'run1'
         else:
-            exst_run_nums = [int(str(folder.name).split('run')[1]) for folder in run_dir.iterdir() if str(folder.name).startswith('run')]
+            exst_run_nums = [int(str(folder.name).split('run')[1]) for folder in run_dir.iterdir() if
+                             str(folder.name).startswith('run')]
             if len(exst_run_nums) == 0:
                 curr_run = 'run1'
             else:
@@ -152,7 +157,7 @@ def main(args):
 
     runner = Runner(config)
     runner.run()
-    
+
     # post process
     envs.close()
     if all_args.use_eval and eval_envs is not envs:
