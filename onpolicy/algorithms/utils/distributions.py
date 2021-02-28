@@ -1,13 +1,9 @@
-import math
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
 from .util import init
 
 """
-Modify standard PyTorch distributions so they are compatible with this code.
+Modify standard PyTorch distributions so they to make compatible with this codebase. 
 """
 
 #
