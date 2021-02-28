@@ -6,6 +6,12 @@ from onpolicy.utils.popart import PopArt
 from onpolicy.algorithms.utils.util import check
 
 class R_MAPPO():
+    """
+    Trainer class for MAPPO to update policies.
+    :param args: (argparse.Namespace) arguments containing relevant model, policy, and env information.
+    :param policy: (R_MAPPO_Policy) policy to update.
+    :param device: (torch.device) specifies the device to run on (cpu/gpu).
+    """
     def __init__(self,
                  args,
                  policy,
@@ -39,12 +45,23 @@ class R_MAPPO():
             self.value_normalizer = None
 
     def cal_value_loss(self, values, value_preds_batch, return_batch, active_masks_batch):
+        """
+        Calculate value function loss.
+        :param values: (torch.Tensor) value function predictions.
+        :param value_preds_batch: (torch.Tensor) "old" value  predictions from data batch (used for value clip loss)
+        :param return_batch: (torch.Tensor) reward to go returns.
+        :param active_masks_batch: (torch.Tensor) denotes if agent is active or dead at a given timesep.
+
+        :return value_loss: (torch.Tensor) value function loss.
+        """
         if self._use_popart:
-            value_pred_clipped = value_preds_batch + (values - value_preds_batch).clamp(-self.clip_param, self.clip_param)
+            value_pred_clipped = value_preds_batch + (values - value_preds_batch).clamp(-self.clip_param,
+                                                                                        self.clip_param)
             error_clipped = self.value_normalizer(return_batch) - value_pred_clipped
             error_original = self.value_normalizer(return_batch) - values
         else:
-            value_pred_clipped = value_preds_batch + (values - value_preds_batch).clamp(-self.clip_param, self.clip_param)
+            value_pred_clipped = value_preds_batch + (values - value_preds_batch).clamp(-self.clip_param,
+                                                                                        self.clip_param)
             error_clipped = return_batch - value_pred_clipped
             error_original = return_batch - values
 
@@ -67,8 +84,19 @@ class R_MAPPO():
 
         return value_loss
 
-    def ppo_update(self, sample, turn_on=True):
+    def ppo_update(self, sample, update_actor=True):
+        """
+        Update actor and critic networks.
+        :param sample: (Tuple) contains data batch with which to update networks.
+        :update_actor: (bool) whether to update actor network.
 
+        :return value_loss: (torch.Tensor) value function loss.
+        :return critic_grad_norm: (torch.Tensor) gradient norm from critic up9date.
+        ;return policy_loss: (torch.Tensor) actor(policy) loss value.
+        :return dist_entropy: (torch.Tensor) action entropies.
+        :return actor_grad_norm: (torch.Tensor) gradient norm from actor update.
+        :return imp_weights: (torch.Tensor) importance sampling weights.
+        """
         share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, \
         value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, \
         adv_targ, available_actions_batch = sample
@@ -89,13 +117,15 @@ class R_MAPPO():
                                                                               available_actions_batch,
                                                                               active_masks_batch)
         # actor update
-        ratio = torch.exp(action_log_probs - old_action_log_probs_batch)
+        imp_weights = torch.exp(action_log_probs - old_action_log_probs_batch)
 
-        surr1 = ratio * adv_targ
-        surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * adv_targ
+        surr1 = imp_weights * adv_targ
+        surr2 = torch.clamp(imp_weights, 1.0 - self.clip_param, 1.0 + self.clip_param) * adv_targ
 
         if self._use_policy_active_masks:
-            policy_action_loss = (-torch.sum(torch.min(surr1, surr2), dim=-1, keepdim=True) * active_masks_batch).sum() / active_masks_batch.sum()
+            policy_action_loss = (-torch.sum(torch.min(surr1, surr2),
+                                             dim=-1,
+                                             keepdim=True) * active_masks_batch).sum() / active_masks_batch.sum()
         else:
             policy_action_loss = -torch.sum(torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
 
@@ -103,7 +133,7 @@ class R_MAPPO():
 
         self.policy.actor_optimizer.zero_grad()
 
-        if turn_on:
+        if update_actor:
             (policy_loss - dist_entropy * self.entropy_coef).backward()
 
         if self._use_max_grad_norm:
@@ -127,9 +157,16 @@ class R_MAPPO():
 
         self.policy.critic_optimizer.step()
 
-        return value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, ratio
+        return value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, imp_weights
 
-    def train(self, buffer, turn_on=True):
+    def train(self, buffer, update_actor=True):
+        """
+        Perform a training update using minibatch GD.
+        :param buffer: (SharedReplayBuffer) buffer containing training data.
+        :param update_actor: (bool) whether to update actor network.
+
+        :return train_info: (dict) contains information regarding training update (e.g. loss, grad norms, etc).
+        """
         if self._use_popart:
             advantages = buffer.returns[:-1] - self.value_normalizer.denormalize(buffer.value_preds[:-1])
         else:
@@ -160,15 +197,15 @@ class R_MAPPO():
 
             for sample in data_generator:
 
-                value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, ratio \
-                    = self.ppo_update(sample, turn_on)
+                value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, imp_weights \
+                    = self.ppo_update(sample, update_actor)
 
                 train_info['value_loss'] += value_loss.item()
                 train_info['policy_loss'] += policy_loss.item()
                 train_info['dist_entropy'] += dist_entropy.item()
                 train_info['actor_grad_norm'] += actor_grad_norm
                 train_info['critic_grad_norm'] += critic_grad_norm
-                train_info['ratio'] += ratio.mean() 
+                train_info['ratio'] += imp_weights.mean()
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 
