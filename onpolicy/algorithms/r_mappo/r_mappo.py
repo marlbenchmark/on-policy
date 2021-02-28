@@ -1,12 +1,6 @@
 import numpy as np
-import time
-import math
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
 from onpolicy.utils.util import get_gard_norm, huber_loss, mse_loss
 from onpolicy.utils.popart import PopArt
 from onpolicy.algorithms.utils.util import check
