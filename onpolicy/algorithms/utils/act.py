@@ -3,6 +3,13 @@ import torch
 import torch.nn as nn
 
 class ACTLayer(nn.Module):
+    """
+    MLP Module to compute actions.
+    :param action_space: (gym.Space) action space.
+    :param inputs_dim: (int) dimension of network input.
+    :param use_orthogonal: (bool) whether to use orthogonal initialization.
+    :param gain: (float) gain of the output layer of the network.
+    """
     def __init__(self, action_space, inputs_dim, use_orthogonal, gain):
         super(ACTLayer, self).__init__()
         self.mixed_action = False
@@ -32,6 +39,16 @@ class ACTLayer(nn.Module):
                 inputs_dim, discrete_dim, use_orthogonal, gain)])
     
     def forward(self, x, available_actions=None, deterministic=False):
+        """
+        Compute actions and action logprobs from given input.
+        :param x: (torch.Tensor) input to network.
+        :param available_actions: (torch.Tensor) denotes which actions are available to agent
+                                  (if None, all actions available)
+        :param deterministic: (bool) whether to sample from action distribution or return the mode.
+
+        :return actions: (torch.Tensor) actions to take.
+        :return action_log_probs: (torch.Tensor) log probabilities of taken actions.
+        """
         if self.mixed_action :
             actions = []
             action_log_probs = []
@@ -66,6 +83,14 @@ class ACTLayer(nn.Module):
         return actions, action_log_probs
 
     def get_probs(self, x, available_actions=None):
+        """
+        Compute action probabilities from inputs.
+        :param x: (torch.Tensor) input to network.
+        :param available_actions: (torch.Tensor) denotes which actions are available to agent
+                                  (if None, all actions available)
+
+        :return action_probs: (torch.Tensor)
+        """
         if self.mixed_action or self.multi_discrete:
             action_probs = []
             for action_out in self.action_outs:
@@ -80,6 +105,17 @@ class ACTLayer(nn.Module):
         return action_probs
 
     def evaluate_actions(self, x, action, available_actions=None, active_masks=None):
+        """
+        Compute log probability and entropy of given actions.
+        :param x: (torch.Tensor) input to network.
+        :param action: (torch.Tensor) actions whose entropy and log probability to evaluate.
+        :param available_actions: (torch.Tensor) denotes which actions are available to agent
+                                                              (if None, all actions available)
+        :param active_masks: (torch.Tensor) denotes whether an agent is active or dead.
+
+        :return action_log_probs: (torch.Tensor) log probabilities of the input actions.
+        :return dist_entropy: (torch.Tensor) action distribution entropy for the given inputs.
+        """
         if self.mixed_action:
             a, b = action.split((2, 1), -1)
             b = b.long()
