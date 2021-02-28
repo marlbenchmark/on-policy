@@ -1,9 +1,7 @@
-
-import numpy as np
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
+"""RNN modules."""
 
 class RNNLayer(nn.Module):
     def __init__(self, inputs_dim, outputs_dim, recurrent_N, use_orthogonal):
