@@ -30,22 +30,22 @@ used in the paper; however, please refer to the appendix for a full list of hype
 
 ## 2. Installation
 
-For non-GPU installation, please refer to the PyTorchwebsite. To install on CUDA == 10.1:
+ Here we give an example installation on CUDA == 10.1. For non-GPU & other CUDA version installation, please refer to the [PyTorch website](https://pytorch.org/get-started/locally/).
 
 ``` Bash
 # create conda environment
-conda create -n marl python==3.6.2
+conda create -n marl python==3.6.1
 conda activate marl
 pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
-
-# install off-policy package
-cd offpolicy
+```
+ 
+```
+# install on-policy package
+cd mappo
 pip install -e .
 ```
 
 Even though we provide requirement.txt, it may have redundancy. We recommend that the user try to install other required packages by running the code and finding which required package hasn't installed yet.
-
-
 
 ### 2.1 Install StarCraftII [4.10](http://blzdistsc2-a.akamaihd.net/Linux/SC2.4.10.zip)
 
@@ -84,7 +84,18 @@ pip install seabon
 There are 3 Cooperative scenarios in MPE:
 
 * simple_spread
-* simple_speaker_listener
+* simple_speaker_listener, which is 'Comm' scenario in paper
 * simple_reference
+
+## 3.Train
+Here we use train_mpe.sh as an example:
+```
+cd onpolicy/scripts
+chmod +x ./train_mpe.sh
+./train_mpe.sh
+```
+local results are stored in subfold scripts/results. Note that we use Weights&Bias as the default visualization platform and you need to register&login Weights&Bias first. More instructions for using Weights&Bias can be found in the official document. You can also choose Tensorboard as the visualization platform, just adding `--use_wandb` in .sh file.
+
+In particular, we provide `./eval_hanabi_forward.sh` for evaluating the hanabi score over 100k trials. 
 
 If you find this repository useful, please cite: TODO
