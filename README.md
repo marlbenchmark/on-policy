@@ -61,12 +61,12 @@ echo "export SC2PATH=~/StarCraftII/" > ~/.bashrc
 
 * download SMAC Maps, and move it to `~/StarCraftII/Maps/`.
 
-* If you want stable id, you can copy the `stableid.json` from https://github.com/Blizzard/s2client-proto.git to `~/StarCraftII/`.
+* To use a stableid, copy `stableid.json` from https://github.com/Blizzard/s2client-proto.git to `~/StarCraftII/`.
 
 
 ### 2.2 Hanabi
 Environment code for Hanabi is developed from the open-source environment code, but has been slightly modified to fit the algorithms used here.  
-To install execute the following:
+To install, execute the following:
 ``` Bash
 pip install cffi
 cd envs/hanabi
@@ -96,8 +96,8 @@ cd onpolicy/scripts
 chmod +x ./train_mpe.sh
 ./train_mpe.sh
 ```
-local results are stored in subfold scripts/results. Note that we use Weights&Bias as the default visualization platform and you need to register&login Weights&Bias first. More instructions for using Weights&Bias can be found in the official document. You can also choose Tensorboard as the visualization platform, just adding `--use_wandb` in .sh file.
+Local results are stored in subfold scripts/results. Note that we use Weights & Bias as the default visualization platform; to use Weights & Bias, please register and login to the platform first. More instructions for using Weights&Bias can be found in the official [document](https://docs.wandb.ai/).Adding the `--use_wandb` in command line or in the .sh file will use Tensorboard instead of Weights & Biases. 
 
-In particular, we provide `./eval_hanabi_forward.sh` for evaluating the hanabi score over 100k trials. 
+We additionally provide `./eval_hanabi_forward.sh` for evaluating the hanabi score over 100k trials. 
 
 If you find this repository useful, please cite: TODO
