@@ -2,9 +2,11 @@
 
 Chao Yu*, Akash Velu*, Eugene Vinitsky, Yu Wang, Alexandre Bayen, and Yi Wu. 
 
-This repository implements MAPPO, an multi-agent variant of PPO. The implementation in this repositorory is used in the
-paper "The Surprising Effectiveness of MAPPO in Cooperative, Multi-Agent Games" (TODO: arxiv link). 
+Website: https://sites.google.com/view/mappo
+
+This repository implements MAPPO, an multi-agent variant of PPO. The implementation in this repositorory is used in the paper "The Surprising Effectiveness of MAPPO in Cooperative, Multi-Agent Games" (TODO: arxiv link). 
 This repository is heavily based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail. 
+
 ## Environments supported:
 
 - StarCraftII (SMAC)
@@ -38,7 +40,7 @@ conda create -n marl python==3.6.1
 conda activate marl
 pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 ```
- 
+
 ```
 # install on-policy package
 cd mappo
