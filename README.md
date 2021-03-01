@@ -1,33 +1,51 @@
-# ON-POLICY
+# MAPPO
 
-## 1. Install
+Chao Yu*, Akash Velu*, Eugene Vinitsky, Yu Wang, Alexandre Bayen, and Yi Wu. 
 
-### 1.1 instructions
+This repository implements MAPPO, an multi-agent variant of PPO. The implementation in this repositorory is used in the
+paper "The Surprising Effectiveness of MAPPO in Cooperative, Multi-Agent Games" (TODO: arxiv link). 
+This repository is heavily based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail. 
+## Environments supported:
 
-   test on CUDA == 10.1
+- StarCraftII (SMAC)
+- Hanabi
+- Multiagent Particle-World Environments (MPEs)
 
-   
+## 1. Usage
+All core code is located within the onpolicy folder. The algorithms/ subfolder contains algorithm-specific code
+for MAPPO. 
+
+* The envs/ subfolder contains environment wrapper implementations for the MPEs, SMAC, and Hanabi. 
+
+* Code to perform training rollouts and policy updates are contained within the runner/ folder - there is a runner for 
+each environment. 
+
+* Executable scripts for training with default hyperparameters can be found in the scripts/ folder. The files are named
+in the following manner: train_algo_environment.sh. Within each file, the map name (in the case of SMAC and the MPEs) can be altered. 
+* Python training scripts for each environment can be found in the scripts/train/ folder. 
+
+* The config.py file contains relevant hyperparameter and env settings. Most hyperparameters are defaulted to the ones
+used in the paper; however, please refer to the appendix for a full list of hyperparameters used. 
+
+
+## 2. Installation
+
+For non-GPU installation, please refer to the PyTorchwebsite. To install on CUDA == 10.1:
 
 ``` Bash
-   conda create -n marl
-   conda activate marl
-   pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
-   cd onpolicy
-   pip install -e . 
+# create conda environment
+conda create -n marl python==3.6.2
+conda activate marl
+pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+
+# install off-policy package
+cd offpolicy
+pip install -e .
 ```
 
-### 1.2 hyperparameters
+Even though we provide requirement.txt, it may have redundancy. We recommend that the user try to install other required packages by running the code and finding which required package hasn't installed yet.
 
-* config.py: contains all hyper-parameters
 
-* default: use GPU, chunk-version recurrent policy and shared policy
-
-* other important hyperparameters:
-  - use_centralized_V: Centralized training (MA) or Centralized training (I)
-  - use_recurrent_policy: rnn or mlp
-  - use_eval: turn on evaluation while training, if True, u need to set "n_eval_rollout_threads"
-
-## 2. StarCraftII
 
 ### 2.1 Install StarCraftII [4.10](http://blzdistsc2-a.akamaihd.net/Linux/SC2.4.10.zip)
 
@@ -39,99 +57,34 @@ unzip SC2.4.10.zip
 echo "export SC2PATH=~/StarCraftII/" > ~/.bashrc
 ```
 
-*  download SMAC Maps, and move it to `~/StarCraftII/Maps/`.
+* download SMAC Maps, and move it to `~/StarCraftII/Maps/`.
 
-*  If you want stable id, you can copy the `stableid.json` from https://github.com/Blizzard/s2client-proto.git to `~/StarCraftII/`.
+* If you want stable id, you can copy the `stableid.json` from https://github.com/Blizzard/s2client-proto.git to `~/StarCraftII/`.
 
-### 2.2 Train StarCraftII
 
-* train_smac.py: all train code
-
-  + Here is an example:
-
-  
-
+### 2.2 Hanabi
+Environment code for Hanabi is developed from the open-source environment code, but has been slightly modified to fit the algorithms used here.  
+To install execute the following:
 ``` Bash
-  conda activate marl
-  cd scripts
-  chmod +x train_smac.sh
-  ./train_smac.sh
-```
-
-  + local results are stored in fold `scripts/results`, if you want to see training curves, login wandb first, see guide [here](https://docs.wandb.com/). Sometimes GPU memory may be leaked, you need to clear it manually.
-
-   
-
-``` Bash
-   ./clean_gpu.sh
-```
-
-### 2.3 Tips
-
-   Sometimes StarCraftII exits abnormally, and you need to kill the program manually.
-
-   
-
-``` Bash
-   ./clean_smac.sh
-   ./clean_zombie.sh
-```
-
-## 3. Hanabi
-
-  ### 3.1 Hanabi
-
-   The environment code is reproduced from the hanabi open-source environment, but did some minor changes to fit the algorithms. Hanabi is a game for **2-5** players, best described as a type of cooperative solitaire.
-
-### 3.2 Install Hanabi 
-
-   
-
-``` Bash
-   pip install cffi
-   cd envs/hanabi
-   mkdir build & cd build
-   cmake ..
-   make -j
-```
-
-### 3.3 Train Hanabi
-
-   After 3.2, we will see a libpyhanabi.so file in the hanabi subfold, then we can train hanabi using the following code.
-
-   
-
-``` Bash
-   conda activate onpolicy
-   cd scripts
-   chmod +x train_hanabi_forward.sh
-   ./train_hanabi_forward.sh
+pip install cffi
+cd envs/hanabi
+mkdir build & cd build
+cmake ..
+make -j
 ```
 
 
-## 4. MPE
-
-### 4.1 Install MPE
+### 2.3 Install MPE
 
 ``` Bash
-   # install this package first
-   pip install seabon
+# install this package first
+pip install seabon
 ```
 
-3 Cooperative scenarios in MPE:
+There are 3 Cooperative scenarios in MPE:
 
-* simple_spread: set num_agents=3
-* simple_speaker_listener: set num_agents=2, and use --share_policy
-* simple_reference: set num_agents=2
+* simple_spread
+* simple_speaker_listener
+* simple_reference
 
-### 4.2 Train MPE
-
-   
-
-``` Bash
-   conda activate marl
-   cd scripts
-   chmod +x train_mpe.sh
-   ./train_mpe.sh
-```
-
+If you find this repository useful, please cite: TODO
