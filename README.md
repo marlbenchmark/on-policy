@@ -9,9 +9,9 @@ This repository is heavily based on https://github.com/ikostrikov/pytorch-a2c-pp
 
 ## Environments supported:
 
-- StarCraftII (SMAC)
-- Hanabi
-- Multiagent Particle-World Environments (MPEs)
+- [StarCraftII (SMAC)](https://github.com/oxwhirl/smac)
+- [Hanabi](https://github.com/deepmind/hanabi-learning-environment)
+- [Multiagent Particle-World Environments (MPEs)](https://github.com/openai/multiagent-particle-envs)
 
 ## 1. Usage
 All core code is located within the onpolicy folder. The algorithms/ subfolder contains algorithm-specific code
@@ -99,6 +99,8 @@ chmod +x ./train_mpe.sh
 Local results are stored in subfold scripts/results. Note that we use Weights & Bias as the default visualization platform; to use Weights & Bias, please register and login to the platform first. More instructions for using Weights&Bias can be found in the official [document](https://docs.wandb.ai/).Adding the `--use_wandb` in command line or in the .sh file will use Tensorboard instead of Weights & Biases. 
 
 We additionally provide `./eval_hanabi_forward.sh` for evaluating the hanabi score over 100k trials. 
+
+## 4. Publication
 
 If you find this repository useful, please cite our [paper](https://arxiv.org/abs/2103.01955):
 ```
