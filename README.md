@@ -100,4 +100,15 @@ Local results are stored in subfold scripts/results. Note that we use Weights & 
 
 We additionally provide `./eval_hanabi_forward.sh` for evaluating the hanabi score over 100k trials. 
 
-If you find this repository useful, please cite: TODO
+If you find this repository useful, please cite the [paper](https://arxiv.org/abs/2103.01955):
+```
+@misc{yu2021surprising,
+      title={The Surprising Effectiveness of MAPPO in Cooperative, Multi-Agent Games}, 
+      author={Chao Yu and Akash Velu and Eugene Vinitsky and Yu Wang and Alexandre Bayen and Yi Wu},
+      year={2021},
+      eprint={2103.01955},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```
+
