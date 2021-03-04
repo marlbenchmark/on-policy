@@ -80,7 +80,7 @@ make -j
 
 ``` Bash
 # install this package first
-pip install seabon
+pip install seaborn
 ```
 
 There are 3 Cooperative scenarios in MPE:
