@@ -4,7 +4,7 @@ Chao Yu*, Akash Velu*, Eugene Vinitsky, Yu Wang, Alexandre Bayen, and Yi Wu.
 
 Website: https://sites.google.com/view/mappo
 
-This repository implements MAPPO, an multi-agent variant of PPO. The implementation in this repositorory is used in the paper "The Surprising Effectiveness of MAPPO in Cooperative, Multi-Agent Games" (https://arxiv.org/abs/2103.01955). 
+This repository implements MAPPO, an multi-agent variant of PPO. The implementation in this repositorory is used in the paper "The Surprising Effectiveness of MAPPO in Cooperative Multi-Agent Games" (https://arxiv.org/abs/2103.01955). 
 This repository is heavily based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail. 
 
 ## Environments supported:
@@ -105,7 +105,7 @@ We additionally provide `./eval_hanabi_forward.sh` for evaluating the hanabi sco
 If you find this repository useful, please cite our [paper](https://arxiv.org/abs/2103.01955):
 ```
 @misc{yu2021surprising,
-      title={The Surprising Effectiveness of MAPPO in Cooperative, Multi-Agent Games}, 
+      title={The Surprising Effectiveness of MAPPO in Cooperative Multi-Agent Games}, 
       author={Chao Yu and Akash Velu and Eugene Vinitsky and Yu Wang and Alexandre Bayen and Yi Wu},
       year={2021},
       eprint={2103.01955},
