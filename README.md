@@ -43,7 +43,7 @@ pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pyto
 
 ```
 # install on-policy package
-cd mappo
+cd on-policy
 pip install -e .
 ```
 
