@@ -233,7 +233,7 @@ class MPERunner(Runner):
                     calc_end = time.time()
                     elapsed = calc_end - calc_start
                     if elapsed < self.all_args.ifi:
-                        time.sleep(ifi - elapsed)
+                        time.sleep(self.all_args.ifi - elapsed)
 
             print("average episode rewards is: " + str(np.mean(np.sum(np.array(episode_rewards), axis=0))))
 
