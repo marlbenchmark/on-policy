@@ -58,6 +58,7 @@ class MultiAgentEnv(gym.Env):
         share_obs_dim = 0
         for agent in self.agents:
             total_action_space = []
+            
             # physical action space
             if self.discrete_action_space:
                 u_action_space = spaces.Discrete(world.dim_p * 2 + 1)
@@ -73,8 +74,7 @@ class MultiAgentEnv(gym.Env):
             else:
                 c_action_space = spaces.Box(low=0.0, high=1.0, shape=(
                     world.dim_c,), dtype=np.float32)  # [0,1]
-            #c_action_space = spaces.Discrete(world.dim_c)
-
+            
             if not agent.silent:
                 total_action_space.append(c_action_space)
             # total action space
@@ -88,14 +88,17 @@ class MultiAgentEnv(gym.Env):
                 self.action_space.append(act_space)
             else:
                 self.action_space.append(total_action_space[0])
+            
             # observation space
             obs_dim = len(observation_callback(agent, self.world))
             share_obs_dim += obs_dim
             self.observation_space.append(spaces.Box(
                 low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))  # [-inf,inf]
             agent.action.c = np.zeros(self.world.dim_c)
+        
         self.share_observation_space = [spaces.Box(
-            low=-np.inf, high=+np.inf, shape=(share_obs_dim,), dtype=np.float32)] * self.n
+            low=-np.inf, high=+np.inf, shape=(share_obs_dim,), dtype=np.float32) for _ in range(self.n)]
+        
         # rendering
         self.shared_viewer = shared_viewer
         if self.shared_viewer:
@@ -257,7 +260,7 @@ class MultiAgentEnv(gym.Env):
         self.render_geoms = None
         self.render_geoms_xform = None
 
-    def render(self, mode='human', close=True):
+    def render(self, mode='human', close=False):
         if close:
             # close any existic renderers
             for i, viewer in enumerate(self.viewers):
