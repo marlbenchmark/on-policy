@@ -57,6 +57,8 @@ def get_config():
         --use_ReLU
             by default True, will use ReLU. or else will use Tanh.
         --use_popart
+            by default True, use PopArt to normalize rewards. 
+        --use_valuenorm
             by default True, use running mean and std to normalize rewards. 
         --use_feature_normalization
             by default True, apply layernorm to normalize inputs. 
@@ -200,7 +202,8 @@ def get_config():
                         help="Number of layers for actor/critic networks")
     parser.add_argument("--use_ReLU", action='store_false',
                         default=True, help="Whether to use ReLU")
-    parser.add_argument("--use_popart", action='store_false', default=True, help="by default True, use running mean and std to normalize rewards.")
+    parser.add_argument("--use_popart", action='store_true', default=False, help="by default False, use PopArt to normalize rewards.")
+    parser.add_argument("--use_valuenorm", action='store_false', default=True, help="by default True, use running mean and std to normalize rewards.")
     parser.add_argument("--use_feature_normalization", action='store_false',
                         default=True, help="Whether to apply layernorm to the inputs")
     parser.add_argument("--use_orthogonal", action='store_false', default=True,
@@ -211,8 +214,8 @@ def get_config():
     # recurrent parameters
     parser.add_argument("--use_naive_recurrent_policy", action='store_true',
                         default=False, help='Whether to use a naive recurrent policy')
-    parser.add_argument("--use_recurrent_policy", action='store_true',
-                        default=False, help='use a recurrent policy')
+    parser.add_argument("--use_recurrent_policy", action='store_false',
+                        default=True, help='use a recurrent policy')
     parser.add_argument("--recurrent_N", type=int, default=1, help="The number of recurrent layers.")
     parser.add_argument("--data_chunk_length", type=int, default=10,
                         help="Time length of chunks used to train a recurrent_policy")

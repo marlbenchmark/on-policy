@@ -62,9 +62,9 @@ def parse_args(args, parser):
     parser.add_argument("--add_agent_id", action='store_true', default=False)
     parser.add_argument("--add_visible_state", action='store_true', default=False)
     parser.add_argument("--add_xy_state", action='store_true', default=False)
-    parser.add_argument("--use_state_agent", action='store_true', default=False)
+    parser.add_argument("--use_state_agent", action='store_false', default=True)
     parser.add_argument("--use_mustalive", action='store_false', default=True)
-    parser.add_argument("--add_center_xy", action='store_true', default=False)
+    parser.add_argument("--add_center_xy", action='store_false', default=True)
 
     all_args = parser.parse_known_args(args)[0]
 

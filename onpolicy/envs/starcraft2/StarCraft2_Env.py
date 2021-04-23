@@ -1567,7 +1567,7 @@ class StarCraft2Env(MultiAgentEnv):
         if self.obs_all_health:
             nf_al += 1 + self.shield_bits_ally
 
-        if self.obs_last_action:
+        if self.state_last_action:
             nf_al += self.n_actions
         
         if self.add_center_xy:
@@ -1594,7 +1594,7 @@ class StarCraft2Env(MultiAgentEnv):
         if self.obs_own_health:
             own_feats += 1 + self.shield_bits_ally
 
-        if self.obs_last_action:
+        if self.state_last_action:
             own_feats += self.n_actions
 
         if self.add_center_xy:
