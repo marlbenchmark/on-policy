@@ -2,6 +2,8 @@ import time
 import numpy as np
 import torch
 from onpolicy.runner.shared.base_runner import Runner
+import wandb
+import imageio
 
 def _t2n(x):
     return x.detach().cpu().numpy()
@@ -238,4 +240,4 @@ class MPERunner(Runner):
             print("average episode rewards is: " + str(np.mean(np.sum(np.array(episode_rewards), axis=0))))
 
         if self.all_args.save_gifs:
-            imageio.mimsave(str(self.gif_dir) + 'render.gif', all_frames, duration=self.all_args.ifi)
+            imageio.mimsave(str(self.gif_dir) + '/render.gif', all_frames, duration=self.all_args.ifi)

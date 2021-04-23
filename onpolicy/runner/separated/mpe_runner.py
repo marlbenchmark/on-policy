@@ -308,4 +308,4 @@ class MPERunner(Runner):
                 print("eval average episode rewards of agent%i: " % agent_id + str(average_episode_rewards))
         
         if self.all_args.save_gifs:
-            imageio.mimsave(str(self.gif_dir) + 'render.gif', all_frames, duration=self.all_args.ifi)
+            imageio.mimsave(str(self.gif_dir) + '/render.gif', all_frames, duration=self.all_args.ifi)
