@@ -69,9 +69,8 @@ class GoogleFootballEnv(object):
             self._env = wrappers.FrameStack(self._env, 4)
             self._env = wrappers.GetStateWrapper(self._env)
 
-        self._action_space = self._env.action_space \
-        if num_of_left_agents + num_of_right_agents == 1 else \
-        gym.spaces.Discrete(self._env.action_space.nvec[0])
+        self._action_space = gym.spaces.Discrete(
+            self._env.action_space.nvec[0])
 
         self._observation_space = None if representation == "raw" else gym.spaces.Box(
             low=self._env.observation_space.low[0],
@@ -81,67 +80,69 @@ class GoogleFootballEnv(object):
         self._num_left = num_of_left_agents
         self._num_right = num_of_right_agents
 
-        self._left_keys = tuple("agent_%d" % i for i in range(self._num_left))
-        self._right_keys = tuple("agent_%d" % i
-                                 for i in range(self._num_right))
+        self._share_observation_space = gym.spaces.Box(
+            low=np.concatenate([
+                self._observation_space.low
+                for i in range(self._num_left + self._num_right)
+            ],
+                         axis=-1),
+            high=np.concatenate([
+                self._observation_space.high
+                for i in range(self._num_left + self._num_right)
+            ],
+                          axis=-1),
+            dtype=self._observation_space.dtype)
+
 
     @property
     def action_space(self):
-        return self._action_space
+        return [
+            self._action_space for i in range(self._num_left + self._num_right)
+        ]
 
     @property
     def observation_space(self):
-        return self._observation_space
+        return [
+            self._observation_space
+            for i in range(self._num_left + self._num_right)
+        ]
+
+    @property
+    def share_observation_space(self):
+        return [
+            self._share_observation_space
+            for i in range(self._num_left + self._num_right)
+        ]
 
     def seed(self, seed=None):
         return self._env.seed(seed)
 
     def reset(self):
-        return self._raw2dict(self._env.reset())
+        return self._env.reset()
 
-    def _raw2dict(self, raw):
-        return {
-            'left':
-            {self._left_keys[i]: raw[i]
-             for i in range(self._num_left)},
-            'right': {
-                self._right_keys[i]: raw[self._num_left + i]
-                for i in range(self._num_right)
-            }
-        }
+    def step(self, actions):
+        return self._env.step(actions)
 
-    def step(self, action_dict):
+    @property
+    def num_of_left_agents(self):
+        return self._num_left
 
-        #虽然理论上讲迭代器不保证访问次序？
-        actions_left = [action_dict['left'][key] for key in self._left_keys]
-        actions_right = [action_dict['right'][key] for key in self._right_keys]
-        o, r, d, i = self._env.step(actions_left + actions_right)
-
-        return self._raw2dict(o), self._raw2dict(r), d, i
+    @property
+    def num_of_right_agents(self):
+        return self._num_right
 
     def random_step(self):
-        o, r, d, i = self._env.step([
-            self.action_space.sample()
+        return self._env.step([
+            self._action_space.sample()
             for i in range(self._num_left + self._num_right)
         ])
-        return self._raw2dict(o), self._raw2dict(r), d, i
 
 
 if __name__ == "__main__":
     e = GoogleFootballEnv(num_of_left_agents=2,
                           num_of_right_agents=2,
                           env_name='5_vs_5',
-                          representation="raw")
+                          representation="simple115v2")
     o = e.reset()
-    while True:
-        o, _, done, _ = e.random_step()
-        assert (o['left']['agent_0']['left_team'] == o['left']['agent_1']
-                ['left_team']).all()
-        assert (o['right']['agent_0']['right_team'] == o['right']['agent_1']
-                ['right_team']).all()
-
-        assert not (o['left']['agent_0']['left_team'] +
-               o['right']['agent_0']['right_team']).any()
-
-        if done:
-            break
+    _,_,_,infos=e.random_step()
+    print(infos['score_reward'])

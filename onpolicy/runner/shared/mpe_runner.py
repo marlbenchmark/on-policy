@@ -178,7 +178,7 @@ class MPERunner(Runner):
         eval_episode_rewards = np.array(eval_episode_rewards)
         eval_env_infos = {}
         eval_env_infos['eval_average_episode_rewards'] = np.sum(np.array(eval_episode_rewards), axis=0)
-        print("eval average episode rewards of agent: " + str(eval_average_episode_rewards))
+        #print("eval average episode rewards of agent: " + str(eval_average_episode_rewards))
         self.log_env(eval_env_infos, total_num_steps)
 
     @torch.no_grad()

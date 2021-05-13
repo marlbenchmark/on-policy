@@ -22,7 +22,7 @@ class Runner(object):
         self.device = config['device']
         self.num_agents = config['num_agents']
         if config.__contains__("render_envs"):
-            self.render_envs = config['render_envs']       
+            self.render_envs = config['render_envs']
 
         # parameters
         self.env_name = self.all_args.env_name
@@ -55,19 +55,21 @@ class Runner(object):
             self.run_dir = str(wandb.run.dir)
         else:
             self.run_dir = config["run_dir"]
-            self.log_dir = str(self.run_dir / 'logs')
+            self.log_dir = os.path.join(self.run_dir, 'logs')
             if not os.path.exists(self.log_dir):
                 os.makedirs(self.log_dir)
             self.writter = SummaryWriter(self.log_dir)
-            self.save_dir = str(self.run_dir / 'models')
+            self.save_dir = os.path.join(self.run_dir, '')
             if not os.path.exists(self.save_dir):
                 os.makedirs(self.save_dir)
 
         from onpolicy.algorithms.r_mappo.r_mappo import R_MAPPO as TrainAlgo
         from onpolicy.algorithms.r_mappo.algorithm.rMAPPOPolicy import R_MAPPOPolicy as Policy
 
+
         share_observation_space = self.envs.share_observation_space[0] if self.use_centralized_V else self.envs.observation_space[0]
 
+        
         # policy network
         self.policy = Policy(self.all_args,
                             self.envs.observation_space[0],
@@ -80,7 +82,7 @@ class Runner(object):
 
         # algorithm
         self.trainer = TrainAlgo(self.all_args, self.policy, device = self.device)
-        
+
         # buffer
         self.buffer = SharedReplayBuffer(self.all_args,
                                         self.num_agents,
@@ -106,7 +108,7 @@ class Runner(object):
         :param data: (Tuple) data to insert into training buffer.
         """
         raise NotImplementedError
-    
+
     @torch.no_grad()
     def compute(self):
         """Calculate returns for the collected data."""
@@ -116,11 +118,11 @@ class Runner(object):
                                                 np.concatenate(self.buffer.masks[-1]))
         next_values = np.array(np.split(_t2n(next_values), self.n_rollout_threads))
         self.buffer.compute_returns(next_values, self.trainer.value_normalizer)
-    
+
     def train(self):
         """Train policies with data in buffer. """
         self.trainer.prep_training()
-        train_infos = self.trainer.train(self.buffer)      
+        train_infos = self.trainer.train(self.buffer)
         self.buffer.after_update()
         return train_infos
 
@@ -138,7 +140,7 @@ class Runner(object):
         if not self.all_args.use_render:
             policy_critic_state_dict = torch.load(str(self.model_dir) + '/critic.pt')
             self.policy.critic.load_state_dict(policy_critic_state_dict)
- 
+
     def log_train(self, train_infos, total_num_steps):
         """
         Log training info.
