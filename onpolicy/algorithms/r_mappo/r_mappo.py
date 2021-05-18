@@ -171,7 +171,7 @@ class R_MAPPO():
 
         :return train_info: (dict) contains information regarding training update (e.g. loss, grad norms, etc).
         """
-        if self._use_popart:
+        if self._use_popart or self._use_valuenorm::
             advantages = buffer.returns[:-1] - self.value_normalizer.denormalize(buffer.value_preds[:-1])
         else:
             advantages = buffer.returns[:-1] - buffer.value_preds[:-1]
