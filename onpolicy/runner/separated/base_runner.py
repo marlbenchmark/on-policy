@@ -36,7 +36,6 @@ class Runner(object):
         self.hidden_size = self.all_args.hidden_size
         self.use_wandb = self.all_args.use_wandb
         self.use_render = self.all_args.use_render
-        self.use_single_network = self.all_args.use_single_network
         self.recurrent_N = self.all_args.recurrent_N
 
         # interval
@@ -67,22 +66,10 @@ class Runner(object):
                 if not os.path.exists(self.save_dir):
                     os.makedirs(self.save_dir)
 
-        if "mappo" in self.algorithm_name:
-            if self.use_single_network:
-                from onpolicy.algorithms.r_mappo_single.r_mappo_single import R_MAPPO as TrainAlgo
-                from onpolicy.algorithms.r_mappo_single.algorithm.rMAPPOPolicy import R_MAPPOPolicy as Policy
-            else:
-                from onpolicy.algorithms.r_mappo.r_mappo import R_MAPPO as TrainAlgo
-                from onpolicy.algorithms.r_mappo.algorithm.rMAPPOPolicy import R_MAPPOPolicy as Policy
-        elif "mappg" in self.algorithm_name:
-            if self.use_single_network:
-                from onpolicy.algorithms.r_mappg_single.r_mappg_single import R_MAPPG as TrainAlgo
-                from onpolicy.algorithms.r_mappg_single.algorithm.rMAPPGPolicy import R_MAPPGPolicy as Policy
-            else:
-                from onpolicy.algorithms.r_mappg.r_mappg import R_MAPPG as TrainAlgo
-                from onpolicy.algorithms.r_mappg.algorithm.rMAPPGPolicy import R_MAPPGPolicy as Policy
-        else:
-            raise NotImplementedError
+
+        from onpolicy.algorithms.r_mappo.r_mappo import R_MAPPO as TrainAlgo
+        from onpolicy.algorithms.r_mappo.algorithm.rMAPPOPolicy import R_MAPPOPolicy as Policy
+
 
         self.policy = []
         for agent_id in range(self.num_agents):
