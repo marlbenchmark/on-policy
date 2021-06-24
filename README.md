@@ -14,7 +14,8 @@ This repository is heavily based on https://github.com/ikostrikov/pytorch-a2c-pp
 - [Multiagent Particle-World Environments (MPEs)](https://github.com/openai/multiagent-particle-envs)
 
 ## 1. Usage
-** WARNING: by default all experiments assume a shared policy by all agents i.e. there is one neural network shared by all agents **
+**WARNING: by default all experiments assume a shared policy by all agents i.e. there is one neural network shared by all agents**
+
 All core code is located within the onpolicy folder. The algorithms/ subfolder contains algorithm-specific code
 for MAPPO. 
 
