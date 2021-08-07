@@ -76,7 +76,7 @@ mkdir build & cd build
 cmake ..
 make -j
 ```
-
+Here is the best hanabi [model](https://drive.google.com/file/d/1qukCU0eQFcfcyYRQczv9aJoNyBJdQIEH/view?usp=sharing), which gains 24.29 score.
 
 ### 2.3 Install MPE
 
