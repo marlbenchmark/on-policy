@@ -51,7 +51,7 @@ class PopArt(torch.nn.Module):
             input_vector = torch.from_numpy(input_vector)
         input_vector = input_vector.to(**self.tpdv)
         
-        old_mean, old_stddev = self.mean, self.stddev
+        old_mean, old_stddev = self.mean.clone(), self.stddev.clone()
 
         batch_mean = input_vector.mean(dim=tuple(range(self.norm_axes)))
         batch_sq_mean = (input_vector ** 2).mean(dim=tuple(range(self.norm_axes)))
