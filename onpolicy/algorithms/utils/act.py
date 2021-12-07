@@ -149,7 +149,7 @@ class ACTLayer(nn.Module):
                     dist_entropy.append(action_logit.entropy().mean())
 
             action_log_probs = torch.cat(action_log_probs, -1) # ! could be wrong
-            dist_entropy = torch.tensor(dist_entropy).mean()
+            dist_entropy = sum(dist_entropy)/len(dist_entropy)
         
         else:
             action_logits = self.action_out(x, available_actions)
