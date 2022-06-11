@@ -1,6 +1,6 @@
 # MAPPO
 
-Chao Yu*, Akash Velu*, Eugene Vinitsky, Yu Wang, Alexandre Bayen, and Yi Wu. 
+Chao Yu*, Akash Velu*, Eugene Vinitsky, Jiaxuan Gao, Yu Wang, Alexandre Bayen, and Yi Wu. 
 
 Website: https://sites.google.com/view/mappo
 
@@ -12,6 +12,7 @@ This repository is heavily based on https://github.com/ikostrikov/pytorch-a2c-pp
 - [StarCraftII (SMAC)](https://github.com/oxwhirl/smac)
 - [Hanabi](https://github.com/deepmind/hanabi-learning-environment)
 - [Multiagent Particle-World Environments (MPEs)](https://github.com/openai/multiagent-particle-envs)
+- [Google Research Football (GRF)](https://github.com/google-research/football)
 
 ## 1. Usage
 **WARNING: by default all experiments assume a shared policy by all agents i.e. there is one neural network shared by all agents**
@@ -51,7 +52,7 @@ pip install -e .
 
 Even though we provide requirement.txt, it may have redundancy. We recommend that the user try to install other required packages by running the code and finding which required package hasn't installed yet.
 
-### 2.1 Install StarCraftII [4.10](http://blzdistsc2-a.akamaihd.net/Linux/SC2.4.10.zip)
+### 2.1 StarCraftII [4.10](http://blzdistsc2-a.akamaihd.net/Linux/SC2.4.10.zip)
 
    
 
@@ -78,7 +79,7 @@ make -j
 ```
 Here are all hanabi [models](https://drive.google.com/drive/folders/1RIcP_rG9NY9UzaWfFsIncDcjASk5h4Nx?usp=sharing).
 
-### 2.3 Install MPE
+### 2.3 MPE
 
 ``` Bash
 # install this package first
@@ -90,6 +91,10 @@ There are 3 Cooperative scenarios in MPE:
 * simple_spread
 * simple_speaker_listener, which is 'Comm' scenario in paper
 * simple_reference
+
+### 2.4 GRF
+
+Please see the [football](https://github.com/google-research/football/blob/master/README.md) repository to install the football environment.
 
 ## 3.Train
 Here we use train_mpe.sh as an example:
