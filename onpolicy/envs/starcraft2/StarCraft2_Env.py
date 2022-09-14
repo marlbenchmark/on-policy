@@ -560,7 +560,7 @@ class StarCraft2Env(MultiAgentEnv):
         elif self._episode_steps >= self.episode_limit:
             # Episode limit reached
             terminated = True
-            self.bad_transition = True
+            bad_transition = True
             if self.continuing_episode:
                 info["episode_limit"] = True
             self.battles_game += 1
