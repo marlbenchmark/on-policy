@@ -22,7 +22,7 @@ def update_linear_schedule(optimizer, epoch, total_num_epochs, initial_lr):
 
 def huber_loss(e, d):
     a = (abs(e) <= d).float()
-    b = (e > d).float()
+    b = (abs(e) > d).float()
     return a*e**2/2 + b*d*(abs(e)-d/2)
 
 def mse_loss(e):
