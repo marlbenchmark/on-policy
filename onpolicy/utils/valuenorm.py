@@ -8,7 +8,7 @@ import torch.nn as nn
 class ValueNorm(nn.Module):
     """ Normalize a vector of observations - across the first norm_axes dimensions"""
 
-    def __init__(self, input_shape, norm_axes=1, beta=0.99999, per_element_update=False, epsilon=1e-5, device=torch.device("cpu")):
+    def __init__(self, input_shape, norm_axes=1, beta=0.99999, per_element_update=False, epsilon=1e-5):
         super(ValueNorm, self).__init__()
 
         self.input_shape = input_shape
@@ -16,11 +16,10 @@ class ValueNorm(nn.Module):
         self.epsilon = epsilon
         self.beta = beta
         self.per_element_update = per_element_update
-        self.tpdv = dict(dtype=torch.float32, device=device)
 
-        self.running_mean = nn.Parameter(torch.zeros(input_shape), requires_grad=False).to(**self.tpdv)
-        self.running_mean_sq = nn.Parameter(torch.zeros(input_shape), requires_grad=False).to(**self.tpdv)
-        self.debiasing_term = nn.Parameter(torch.tensor(0.0), requires_grad=False).to(**self.tpdv)
+        self.running_mean = nn.Parameter(torch.zeros(input_shape), requires_grad=False)
+        self.running_mean_sq = nn.Parameter(torch.zeros(input_shape), requires_grad=False)
+        self.debiasing_term = nn.Parameter(torch.tensor(0.0), requires_grad=False)
         
         self.reset_parameters()
 
@@ -39,7 +38,7 @@ class ValueNorm(nn.Module):
     def update(self, input_vector):
         if type(input_vector) == np.ndarray:
             input_vector = torch.from_numpy(input_vector)
-        input_vector = input_vector.to(**self.tpdv)
+        input_vector = input_vector.to(self.running_mean.device)  # not elegant, but works in most cases
 
         batch_mean = input_vector.mean(dim=tuple(range(self.norm_axes)))
         batch_sq_mean = (input_vector ** 2).mean(dim=tuple(range(self.norm_axes)))
@@ -58,7 +57,7 @@ class ValueNorm(nn.Module):
         # Make sure input is float32
         if type(input_vector) == np.ndarray:
             input_vector = torch.from_numpy(input_vector)
-        input_vector = input_vector.to(**self.tpdv)
+        input_vector = input_vector.to(self.running_mean.device)  # not elegant, but works in most cases
 
         mean, var = self.running_mean_var()
         out = (input_vector - mean[(None,) * self.norm_axes]) / torch.sqrt(var)[(None,) * self.norm_axes]
@@ -69,7 +68,7 @@ class ValueNorm(nn.Module):
         """ Transform normalized data back into original distribution """
         if type(input_vector) == np.ndarray:
             input_vector = torch.from_numpy(input_vector)
-        input_vector = input_vector.to(**self.tpdv)
+        input_vector = input_vector.to(self.running_mean.device)  # not elegant, but works in most cases
 
         mean, var = self.running_mean_var()
         out = input_vector * torch.sqrt(var)[(None,) * self.norm_axes] + mean[(None,) * self.norm_axes]
