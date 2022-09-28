@@ -131,7 +131,7 @@ class Runner(object):
         policy_critic = self.trainer.policy.critic
         torch.save(policy_critic.state_dict(), str(self.save_dir) + "/critic.pt")
         if self.trainer._use_valuenorm:
-            policy_vnorm = self.trainer.policy.value_normalizer
+            policy_vnorm = self.trainer.value_normalizer
             torch.save(policy_vnorm.state_dict(), str(self.save_dir) + "/vnorm.pt")
 
     def restore(self):
