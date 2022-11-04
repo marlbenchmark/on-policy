@@ -16,8 +16,8 @@ setup(
     description="on-policy algorithms of marlbenchmark",
     long_description=open("README.md", encoding="utf8").read(),
     long_description_content_type="text/markdown",
-    author="marl",
-    author_email="marl@gmail.com",
+    author="zoeyuchao",
+    author_email="zoeyuchao@gmail.com",
     packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",

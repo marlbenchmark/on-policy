@@ -66,9 +66,16 @@ def main(args):
     all_args = parse_args(args, parser)
 
     if all_args.algorithm_name == "rmappo":
-        assert (all_args.use_recurrent_policy or all_args.use_naive_recurrent_policy), ("check recurrent policy!")
+        print("u are choosing to use rmappo, we set use_recurrent_policy to be True")
+        all_args.use_recurrent_policy = True
+        all_args.use_naive_recurrent_policy = False
     elif all_args.algorithm_name == "mappo":
-        assert (all_args.use_recurrent_policy == False and all_args.use_naive_recurrent_policy == False), ("check recurrent policy!")
+        print("u are choosing to use mappo, we set use_recurrent_policy & use_naive_recurrent_policy to be False")
+        all_args.use_recurrent_policy = False 
+        all_args.use_naive_recurrent_policy = False
+    elif all_args.algorithm_name == "ippo":
+        print("u are choosing to use ippo, we set use_centralized_V to be False")
+        all_args.use_centralized_V = False
     else:
         raise NotImplementedError
 

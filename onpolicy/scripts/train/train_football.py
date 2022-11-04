@@ -98,10 +98,17 @@ def main(args):
     parser = get_config()
     all_args = parse_args(args, parser)
 
-    if all_args.algorithm_name == "rmappo" or all_args.algorithm_name == "rmappg":
-        assert (all_args.use_recurrent_policy or all_args.use_naive_recurrent_policy), ("check recurrent policy!")
-    elif all_args.algorithm_name == "mappo" or all_args.algorithm_name == "mappg":
-        assert (all_args.use_recurrent_policy == False and all_args.use_naive_recurrent_policy == False), ("check recurrent policy!")
+    if all_args.algorithm_name == "rmappo":
+        print("u are choosing to use rmappo, we set use_recurrent_policy to be True")
+        all_args.use_recurrent_policy = True
+        all_args.use_naive_recurrent_policy = False
+    elif all_args.algorithm_name == "mappo":
+        print("u are choosing to use mappo, we set use_recurrent_policy & use_naive_recurrent_policy to be False")
+        all_args.use_recurrent_policy = False 
+        all_args.use_naive_recurrent_policy = False
+    elif all_args.algorithm_name == "ippo":
+        print("u are choosing to use ippo, we set use_centralized_V to be False. Note that GRF is a fully observed game, so ippo is rmappo.")
+        all_args.use_centralized_V = False
     else:
         raise NotImplementedError
 
