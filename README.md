@@ -113,13 +113,12 @@ We additionally provide `./eval_hanabi_forward.sh` for evaluating the hanabi sco
 
 If you find this repository useful, please cite our [paper](https://arxiv.org/abs/2103.01955):
 ```
-@misc{yu2021surprising,
-      title={The Surprising Effectiveness of PPO in Cooperative Multi-Agent Games}, 
-      author={Chao Yu and Akash Velu and Eugene Vinitsky and Jiaxuan Gao and Yu Wang and Alexandre Bayen and Yi Wu},
-      year={2021},
-      eprint={2103.01955},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+@inproceedings{
+yu2022the,
+title={The Surprising Effectiveness of {PPO} in Cooperative Multi-Agent Games},
+author={Chao Yu and Akash Velu and Eugene Vinitsky and Jiaxuan Gao and Yu Wang and Alexandre Bayen and Yi Wu},
+booktitle={Thirty-sixth Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
+year={2022}
 }
 ```
 
