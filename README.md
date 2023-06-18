@@ -68,6 +68,7 @@ echo "export SC2PATH=~/StarCraftII/" > ~/.bashrc
 
 * To use a stableid, copy `stableid.json` from https://github.com/Blizzard/s2client-proto.git to `~/StarCraftII/`.
 
+For SMAC v2, please refer to https://github.com/oxwhirl/smacv2.git. Make sure you have the `32x32_flat.SC2Map` map file in your `SMAC_Maps` folder.
 
 ### 2.2 Hanabi
 Environment code for Hanabi is developed from the open-source environment code, but has been slightly modified to fit the algorithms used here.  
