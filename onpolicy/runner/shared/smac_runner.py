@@ -63,7 +63,7 @@ class SMACRunner(Runner):
                                 self.num_env_steps,
                                 int(total_num_steps / (end - start))))
 
-                if self.env_name == "StarCraft2":
+                if self.env_name == "StarCraft2" or self.env_name == "SMACv2" or self.env_name == "SMAC" or self.env_name == "StarCraft2v2":
                     battles_won = []
                     battles_game = []
                     incre_battles_won = []
