@@ -1,8 +1,6 @@
 # MAPPO
 
-## New Update！！！
-
-We support SMAC V2 now～
+## New Update！！！We support SMAC V2 now～
 
 Chao Yu*, Akash Velu*, Eugene Vinitsky, Jiaxuan Gao, Yu Wang, Alexandre Bayen, and Yi Wu. 
 
