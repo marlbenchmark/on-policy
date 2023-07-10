@@ -64,7 +64,7 @@ Even though we provide requirement.txt, it may have redundancy. We recommend tha
 ``` Bash
 unzip SC2.4.10.zip
 # password is iagreetotheeula
-echo "export SC2PATH=~/StarCraftII/" > ~/.bashrc
+echo "export SC2PATH=~/StarCraftII/" >> ~/.bashrc
 ```
 
 * download SMAC Maps, and move it to `~/StarCraftII/Maps/`.
