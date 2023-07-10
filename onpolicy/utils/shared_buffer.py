@@ -76,13 +76,13 @@ class SharedReplayBuffer(object):
 
         self.step = 0
 
-    def insert(self, share_obs, obs, rnn_states_actor, rnn_states_critic, actions, action_log_probs,
+    def insert(self, share_obs, obs, rnn_states, rnn_states_critic, actions, action_log_probs,
                value_preds, rewards, masks, bad_masks=None, active_masks=None, available_actions=None):
         """
         Insert data into the buffer.
         :param share_obs: (argparse.Namespace) arguments containing relevant model, policy, and env information.
         :param obs: (np.ndarray) local agent observations.
-        :param rnn_states_actor: (np.ndarray) RNN states for actor network.
+        :param rnn_states: (np.ndarray) RNN states for actor network.
         :param rnn_states_critic: (np.ndarray) RNN states for critic network.
         :param actions:(np.ndarray) actions taken by agents.
         :param action_log_probs:(np.ndarray) log probs of actions taken by agents
@@ -95,7 +95,7 @@ class SharedReplayBuffer(object):
         """
         self.share_obs[self.step + 1] = share_obs.copy()
         self.obs[self.step + 1] = obs.copy()
-        self.rnn_states[self.step + 1] = rnn_states_actor.copy()
+        self.rnn_states[self.step + 1] = rnn_states.copy()
         self.rnn_states_critic[self.step + 1] = rnn_states_critic.copy()
         self.actions[self.step] = actions.copy()
         self.action_log_probs[self.step] = action_log_probs.copy()
@@ -117,7 +117,7 @@ class SharedReplayBuffer(object):
         Insert data into the buffer. This insert function is used specifically for Hanabi, which is turn based.
         :param share_obs: (argparse.Namespace) arguments containing relevant model, policy, and env information.
         :param obs: (np.ndarray) local agent observations.
-        :param rnn_states_actor: (np.ndarray) RNN states for actor network.
+        :param rnn_states: (np.ndarray) RNN states for actor network.
         :param rnn_states_critic: (np.ndarray) RNN states for critic network.
         :param actions:(np.ndarray) actions taken by agents.
         :param action_log_probs:(np.ndarray) log probs of actions taken by agents
