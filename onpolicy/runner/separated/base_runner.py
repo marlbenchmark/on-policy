@@ -1,4 +1,3 @@
-    
 import time
 import wandb
 import os
@@ -48,7 +47,6 @@ class Runner(object):
         self.model_dir = self.all_args.model_dir
 
         if self.use_render:
-            import imageio
             self.run_dir = config["run_dir"]
             self.gif_dir = str(self.run_dir / 'gifs')
             if not os.path.exists(self.gif_dir):
@@ -56,6 +54,7 @@ class Runner(object):
         else:
             if self.use_wandb:
                 self.save_dir = str(wandb.run.dir)
+                self.run_dir = str(wandb.run.dir)
             else:
                 self.run_dir = config["run_dir"]
                 self.log_dir = str(self.run_dir / 'logs')
@@ -142,14 +141,16 @@ class Runner(object):
                 torch.save(policy_vnrom.state_dict(), str(self.save_dir) + "/vnrom_agent" + str(agent_id) + ".pt")
 
     def restore(self):
+        """Restore policy's networks from saved models."""
         for agent_id in range(self.num_agents):
             policy_actor_state_dict = torch.load(str(self.model_dir) + '/actor_agent' + str(agent_id) + '.pt')
             self.policy[agent_id].actor.load_state_dict(policy_actor_state_dict)
-            policy_critic_state_dict = torch.load(str(self.model_dir) + '/critic_agent' + str(agent_id) + '.pt')
-            self.policy[agent_id].critic.load_state_dict(policy_critic_state_dict)
-            if self.trainer[agent_id]._use_valuenorm:
-                policy_vnrom_state_dict = torch.load(str(self.model_dir) + '/vnrom_agent' + str(agent_id) + '.pt')
-                self.trainer[agent_id].value_normalizer.load_state_dict(policy_vnrom_state_dict)
+            if not self.all_args.use_render:
+                policy_critic_state_dict = torch.load(str(self.model_dir) + '/critic_agent' + str(agent_id) + '.pt')
+                self.policy[agent_id].critic.load_state_dict(policy_critic_state_dict)
+                if self.trainer[agent_id]._use_valuenorm:
+                    policy_vnrom_state_dict = torch.load(str(self.model_dir) + '/vnrom_agent' + str(agent_id) + '.pt')
+                    self.trainer[agent_id].value_normalizer.load_state_dict(policy_vnrom_state_dict)
 
     def log_train(self, train_infos, total_num_steps): 
         for agent_id in range(self.num_agents):
