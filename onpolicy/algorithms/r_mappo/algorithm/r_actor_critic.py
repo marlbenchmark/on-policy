@@ -36,9 +36,10 @@ class R_Actor(nn.Module):
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             self.rnn = RNNLayer(self.hidden_size, self.hidden_size, self._recurrent_N, self._use_orthogonal)
 
-        self.act = ACTLayer(action_space, self.hidden_size, self._use_orthogonal, self._gain)
+        self.act = ACTLayer(action_space, self.hidden_size, self._use_orthogonal, self._gain, args)
 
         self.to(device)
+        self.algo = args.algorithm_name
 
     def forward(self, obs, rnn_states, masks, available_actions=None, deterministic=False):
         """
@@ -98,11 +99,20 @@ class R_Actor(nn.Module):
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             actor_features, rnn_states = self.rnn(actor_features, rnn_states, masks)
 
-        action_log_probs, dist_entropy = self.act.evaluate_actions(actor_features,
-                                                                   action, available_actions,
-                                                                   active_masks=
-                                                                   active_masks if self._use_policy_active_masks
-                                                                   else None)
+        if self.algo == "hatrpo":
+            action_log_probs, dist_entropy ,action_mu, action_std, all_probs= self.act.evaluate_actions_trpo(actor_features,
+                                                                    action, available_actions,
+                                                                    active_masks=
+                                                                    active_masks if self._use_policy_active_masks
+                                                                    else None)
+
+            return action_log_probs, dist_entropy, action_mu, action_std, all_probs
+        else:
+            action_log_probs, dist_entropy = self.act.evaluate_actions(actor_features,
+                                                                    action, available_actions,
+                                                                    active_masks=
+                                                                    active_masks if self._use_policy_active_masks
+                                                                    else None)
 
         return action_log_probs, dist_entropy
 

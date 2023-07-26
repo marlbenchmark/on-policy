@@ -133,15 +133,26 @@ def main(args):
         print("u are choosing to use rmappo, we set use_recurrent_policy to be True")
         all_args.use_recurrent_policy = True
         all_args.use_naive_recurrent_policy = False
-    elif all_args.algorithm_name == "mappo":
+    elif all_args.algorithm_name == "mappo" or all_args.algorithm_name == "mat" or all_args.algorithm_name == "mat_dec":
+        assert (all_args.use_recurrent_policy == False and all_args.use_naive_recurrent_policy == False), (
+            "check recurrent policy!")
         print("u are choosing to use mappo, we set use_recurrent_policy & use_naive_recurrent_policy to be False")
         all_args.use_recurrent_policy = False 
         all_args.use_naive_recurrent_policy = False
     elif all_args.algorithm_name == "ippo":
         print("u are choosing to use ippo, we set use_centralized_V to be False")
         all_args.use_centralized_V = False
+    elif all_args.algorithm_name == "happo"  or all_args.algorithm_name == "hatrpo":
+        # can or cannot use recurrent network?
+        print("using", all_args.algorithm_name, 'without recurrent network')
+        all_args.use_recurrent_policy = False 
+        all_args.use_naive_recurrent_policy = False
     else:
         raise NotImplementedError
+
+    if all_args.algorithm_name == "mat_dec":
+        all_args.dec_actor = True
+        all_args.share_actor = True
 
     # cuda
     if all_args.cuda and torch.cuda.is_available():
@@ -225,6 +236,9 @@ def main(args):
     if all_args.share_policy:
         from onpolicy.runner.shared.smac_runner import SMACRunner as Runner
     else:
+        from onpolicy.runner.separated.smac_runner import SMACRunner as Runner
+
+    if all_args.algorithm_name == "happo" or all_args.algorithm_name == "hatrpo":
         from onpolicy.runner.separated.smac_runner import SMACRunner as Runner
 
     runner = Runner(config)
