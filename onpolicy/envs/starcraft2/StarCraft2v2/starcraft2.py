@@ -488,7 +488,7 @@ class StarCraft2Env(MultiAgentEnv):
                         [(b >> i) & 1 for b in row for i in range(7, -1, -1)]
                         for row in vals
                     ],
-                    dtype=np.bool,
+                    dtype=bool,
                 )
             )
         else:
