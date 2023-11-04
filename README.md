@@ -17,7 +17,7 @@ This repository implements MAPPO, a multi-agent variant of PPO. The implementati
 - [Hanabi](https://github.com/deepmind/hanabi-learning-environment)
 - [Multiagent Particle-World Environments (MPEs)](https://github.com/openai/multiagent-particle-envs)
 - [Google Research Football (GRF)](https://github.com/google-research/football)
-- - [StarCraftII (SMAC) v2](https://github.com/oxwhirl/smacv2)
+- [StarCraftII (SMAC) v2](https://github.com/oxwhirl/smacv2)
 
 ## 1. Usage
 **WARNING: by default all experiments assume a shared policy by all agents i.e. there is one neural network shared by all agents**
