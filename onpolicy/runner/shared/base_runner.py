@@ -22,7 +22,7 @@ class Runner(object):
         self.device = config['device']
         self.num_agents = config['num_agents']
         if config.__contains__("render_envs"):
-            self.render_envs = config['render_envs']       
+            self.render_envs = config['render_envs']
 
         # parameters
         self.env_name = self.all_args.env_name
@@ -66,6 +66,7 @@ class Runner(object):
         if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
             from onpolicy.algorithms.mat.mat_trainer import MATTrainer as TrainAlgo
             from onpolicy.algorithms.mat.algorithm.transformer_policy import TransformerPolicy as Policy
+
         else:
             from onpolicy.algorithms.r_mappo.r_mappo import R_MAPPO as TrainAlgo
             from onpolicy.algorithms.r_mappo.algorithm.rMAPPOPolicy import R_MAPPOPolicy as Policy
@@ -75,14 +76,24 @@ class Runner(object):
         print("obs_space: ", self.envs.observation_space)
         print("share_obs_space: ", self.envs.share_observation_space)
         print("act_space: ", self.envs.action_space)
-        
+
         # policy network
-        self.policy = Policy(self.all_args,
-                            self.envs.observation_space[0],
-                            share_observation_space,
-                            self.envs.action_space[0],
-                            self.num_agents, # default 2
-                            device = self.device)
+        if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
+            from onpolicy.algorithms.mat.algorithm.transformer_policy import TransformerPolicy as Policy
+            self.policy = Policy(self.all_args,
+                                 self.envs.observation_space[0],
+                                 share_observation_space,
+                                 self.envs.action_space[0],
+                                 self.num_agents,  # default 2
+                                 device=self.device)
+        else:
+            from onpolicy.algorithms.r_mappo.algorithm.rMAPPOPolicy import R_MAPPOPolicy as Policy
+            self.policy = Policy(self.all_args,
+                                self.envs.observation_space[0],
+                                share_observation_space,
+                                self.envs.action_space[0],
+                                # self.num_agents, # default 2
+                                device = self.device)
 
         if self.model_dir is not None:
             self.restore(self.model_dir)
@@ -92,7 +103,7 @@ class Runner(object):
             self.trainer = TrainAlgo(self.all_args, self.policy, self.num_agents, device = self.device)
         else:
             self.trainer = TrainAlgo(self.all_args, self.policy, device = self.device)
-        
+
         # buffer
         self.buffer = SharedReplayBuffer(self.all_args,
                                         self.num_agents,
@@ -118,7 +129,7 @@ class Runner(object):
         :param data: (Tuple) data to insert into training buffer.
         """
         raise NotImplementedError
-    
+
     @torch.no_grad()
     def compute(self):
         """Calculate returns for the collected data."""
@@ -134,11 +145,11 @@ class Runner(object):
                                                         np.concatenate(self.buffer.masks[-1]))
         next_values = np.array(np.split(_t2n(next_values), self.n_rollout_threads))
         self.buffer.compute_returns(next_values, self.trainer.value_normalizer)
-    
+
     def train(self):
         """Train policies with data in buffer. """
         self.trainer.prep_training()
-        train_infos = self.trainer.train(self.buffer)      
+        train_infos = self.trainer.train(self.buffer)
         self.buffer.after_update()
         return train_infos
 
