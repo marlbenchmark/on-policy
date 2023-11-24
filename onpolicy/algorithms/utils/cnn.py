@@ -9,7 +9,7 @@ class Flatten(nn.Module):
 
 
 class CNNLayer(nn.Module):
-    def __init__(self, obs_shape, hidden_size, use_orthogonal, use_ReLU, kernel_size=3, stride=1):
+    def __init__(self, obs_shape, hidden_size, use_orthogonal, use_ReLU, kernel_size=1, stride=1):
         super(CNNLayer, self).__init__()
 
         active_func = [nn.Tanh(), nn.ReLU()][use_ReLU]
