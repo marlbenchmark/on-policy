@@ -1,0 +1,16 @@
+{
+    "grid":  """XXPXXXX
+                O   2 S
+                XTPDXXX
+                O   1 S
+                XXXXXXX""",
+    "start_all_orders" : [
+        { "ingredients" : ["onion", "tomato", "tomato"]},
+        { "ingredients" : ["onion", "tomato"]}
+    ],
+    "start_state" : {"players": [{"position": [4, 3], "orientation": [-1, 0], "held_object": None}, {"position": [4, 1], "orientation": [0, -1], "held_object": None}], "objects": [{"name": "soup", "position": [2, 2], "_ingredients": [{"name": "onion", "position": [2, 2]}, {"name": "onion", "position": [2, 2]}], "_cooking_tick": -1, "is_cooking": False, "is_ready": False, "is_idle": True, "cook_time": -1}], "bonus_orders": [], "all_orders": [{"ingredients": ["onion", "tomato"]}, {"ingredients": ["onion", "tomato", "tomato"]}]},
+    "onion_value" : 21,
+    "tomato_value" : 13,
+    "onion_time" : 15,
+    "tomato_time" : 7
+}

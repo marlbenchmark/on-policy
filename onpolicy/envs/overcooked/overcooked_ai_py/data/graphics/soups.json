@@ -1,0 +1,587 @@
+{
+	"textures": [
+		{
+			"image": "soups.png",
+			"format": "RGBA8888",
+			"size": {
+				"w": 405,
+				"h": 15
+			},
+			"scale": 1,
+			"frames": [
+				{
+					"filename": "soup_cooked_tomato_0_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_cooked_tomato_0_onion_2.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 15,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_cooked_tomato_0_onion_3.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 30,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_cooked_tomato_1_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 45,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_cooked_tomato_1_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 60,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_cooked_tomato_1_onion_2.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 75,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_cooked_tomato_2_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 90,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_cooked_tomato_2_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 105,
+						"y": 1,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_cooked_tomato_3_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 10
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 120,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_0_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 135,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_0_onion_2.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 150,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_0_onion_3.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 165,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_1_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 180,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_1_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 195,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_1_onion_2.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 210,
+						"y": 1,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_2_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 225,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_2_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 240,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_done_tomato_3_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 9,
+						"h": 9
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 255,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_0_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 11
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 270,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_0_onion_2.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 11
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 285,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_0_onion_3.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 300,
+						"y": 1,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_1_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 11
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 315,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_1_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 11
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 330,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_1_onion_2.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 345,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_2_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 11
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 360,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_2_onion_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 375,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					}
+				},
+				{
+					"filename": "soup_idle_tomato_3_onion_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 15,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 15,
+						"h": 15
+					},
+					"frame": {
+						"x": 390,
+						"y": 1,
+						"w": 15,
+						"h": 15
+					}
+				}
+			]
+		}
+	],
+	"meta": {
+		"app": "https://www.codeandweb.com/texturepacker",
+		"version": "3.0",
+		"smartupdate": "$TexturePacker:SmartUpdate:91c4610da84a001d7ca07209e5408984:ed0a420a2afea27b70489f300027e915:1e4a55a887ecf42c67c9f02537ecf1ec$"
+	}
+}

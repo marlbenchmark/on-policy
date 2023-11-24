@@ -1,0 +1,26 @@
+{
+    "grid":  """XXPXX
+                O 1 X
+                X   X
+                XDXSX""",
+    "start_bonus_orders": [],
+    "start_all_orders" : [
+        { "ingredients" : ["onion", "onion","onion"]}
+    ],
+    "start_state" : {
+        "players": [{"position": [2, 1], "orientation": [0, -1], "held_object": None}], 
+        "objects": [{
+            "name": "soup", 
+            "position": [2, 0], 
+            "_ingredients": [{"name": "onion", "position": [2, 0]}], 
+            "_cooking_tick": -1, 
+            "is_cooking": False, 
+            "is_ready": False, 
+            "is_idle": True, 
+            "cook_time": -1
+            }], 
+        "bonus_orders": [], 
+        "all_orders": [{"ingredients": ["onion", "onion","onion"]}]
+    },
+    "rew_shaping_params": None
+}
