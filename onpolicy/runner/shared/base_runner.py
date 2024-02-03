@@ -63,23 +63,33 @@ class Runner(object):
             if not os.path.exists(self.save_dir):
                 os.makedirs(self.save_dir)
 
-        from onpolicy.algorithms.r_mappo.r_mappo import R_MAPPO as TrainAlgo
-        from onpolicy.algorithms.r_mappo.algorithm.rMAPPOPolicy import R_MAPPOPolicy as Policy
+        if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
+            from onpolicy.algorithms.mat.mat_trainer import MATTrainer as TrainAlgo
+            from onpolicy.algorithms.mat.algorithm.transformer_policy import TransformerPolicy as Policy
+        else:
+            from onpolicy.algorithms.r_mappo.r_mappo import R_MAPPO as TrainAlgo
+            from onpolicy.algorithms.r_mappo.algorithm.rMAPPOPolicy import R_MAPPOPolicy as Policy
 
         share_observation_space = self.envs.share_observation_space[0] if self.use_centralized_V else self.envs.observation_space[0]
 
+        print("obs_space: ", self.envs.observation_space)
+        print("share_obs_space: ", self.envs.share_observation_space)
+        print("act_space: ", self.envs.action_space)
+        
         # policy network
-        self.policy = Policy(self.all_args,
-                            self.envs.observation_space[0],
-                            share_observation_space,
-                            self.envs.action_space[0],
-                            device = self.device)
+        if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
+            self.policy = Policy(self.all_args, self.envs.observation_space[0], share_observation_space, self.envs.action_space[0], self.num_agents, device = self.device)
+        else:
+            self.policy = Policy(self.all_args, self.envs.observation_space[0], share_observation_space, self.envs.action_space[0], device = self.device)
 
         if self.model_dir is not None:
-            self.restore()
+            self.restore(self.model_dir)
 
         # algorithm
-        self.trainer = TrainAlgo(self.all_args, self.policy, device = self.device)
+        if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
+            self.trainer = TrainAlgo(self.all_args, self.policy, self.num_agents, device = self.device)
+        else:
+            self.trainer = TrainAlgo(self.all_args, self.policy, device = self.device)
         
         # buffer
         self.buffer = SharedReplayBuffer(self.all_args,
@@ -111,9 +121,15 @@ class Runner(object):
     def compute(self):
         """Calculate returns for the collected data."""
         self.trainer.prep_rollout()
-        next_values = self.trainer.policy.get_values(np.concatenate(self.buffer.share_obs[-1]),
-                                                np.concatenate(self.buffer.rnn_states_critic[-1]),
-                                                np.concatenate(self.buffer.masks[-1]))
+        if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
+            next_values = self.trainer.policy.get_values(np.concatenate(self.buffer.share_obs[-1]),
+                                                        np.concatenate(self.buffer.obs[-1]),
+                                                        np.concatenate(self.buffer.rnn_states_critic[-1]),
+                                                        np.concatenate(self.buffer.masks[-1]))
+        else:
+            next_values = self.trainer.policy.get_values(np.concatenate(self.buffer.share_obs[-1]),
+                                                        np.concatenate(self.buffer.rnn_states_critic[-1]),
+                                                        np.concatenate(self.buffer.masks[-1]))
         next_values = np.array(np.split(_t2n(next_values), self.n_rollout_threads))
         self.buffer.compute_returns(next_values, self.trainer.value_normalizer)
     
@@ -124,27 +140,27 @@ class Runner(object):
         self.buffer.after_update()
         return train_infos
 
-    def save(self):
+    def save(self, episode=0):
         """Save policy's actor and critic networks."""
-        policy_actor = self.trainer.policy.actor
-        torch.save(policy_actor.state_dict(), str(self.save_dir) + "/actor.pt")
-        policy_critic = self.trainer.policy.critic
-        torch.save(policy_critic.state_dict(), str(self.save_dir) + "/critic.pt")
-        if self.trainer._use_valuenorm:
-            policy_vnorm = self.trainer.value_normalizer
-            torch.save(policy_vnorm.state_dict(), str(self.save_dir) + "/vnorm.pt")
+        if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
+            self.policy.save(self.save_dir, episode)
+        else:
+            policy_actor = self.trainer.policy.actor
+            torch.save(policy_actor.state_dict(), str(self.save_dir) + "/actor.pt")
+            policy_critic = self.trainer.policy.critic
+            torch.save(policy_critic.state_dict(), str(self.save_dir) + "/critic.pt")
 
-    def restore(self):
+    def restore(self, model_dir):
         """Restore policy's networks from a saved model."""
-        policy_actor_state_dict = torch.load(str(self.model_dir) + '/actor.pt')
-        self.policy.actor.load_state_dict(policy_actor_state_dict)
-        if not self.all_args.use_render:
-            policy_critic_state_dict = torch.load(str(self.model_dir) + '/critic.pt')
-            self.policy.critic.load_state_dict(policy_critic_state_dict)
-            if self.trainer._use_valuenorm:
-                policy_vnorm_state_dict = torch.load(str(self.model_dir) + '/vnorm.pt')
-                self.trainer.value_normalizer.load_state_dict(policy_vnorm_state_dict)
- 
+        if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
+            self.policy.restore(model_dir)
+        else:
+            policy_actor_state_dict = torch.load(str(self.model_dir) + '/actor.pt')
+            self.policy.actor.load_state_dict(policy_actor_state_dict)
+            if not self.all_args.use_render:
+                policy_critic_state_dict = torch.load(str(self.model_dir) + '/critic.pt')
+                self.policy.critic.load_state_dict(policy_critic_state_dict)
+
     def log_train(self, train_infos, total_num_steps):
         """
         Log training info.

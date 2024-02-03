@@ -1,8 +1,7 @@
 import torch
 import numpy as np
 from collections import defaultdict
-
-from onpolicy.utils.util import check, get_shape_from_obs_space, get_shape_from_act_space
+from .util import check, get_shape_from_obs_space, get_shape_from_act_space
 
 def _flatten(T, N, x):
     return x.reshape(T * N, *x.shape[2:])
@@ -56,7 +55,12 @@ class SeparatedReplayBuffer(object):
         self.bad_masks = np.ones_like(self.masks)
         self.active_masks = np.ones_like(self.masks)
 
+        self.factor = None
+
         self.step = 0
+
+    def update_factor(self, factor):
+        self.factor = factor.copy()
 
     def insert(self, share_obs, obs, rnn_states, rnn_states_critic, actions, action_log_probs,
                value_preds, rewards, masks, bad_masks=None, active_masks=None, available_actions=None):
@@ -116,6 +120,9 @@ class SeparatedReplayBuffer(object):
         self.bad_masks[0] = self.bad_masks[-1].copy()
 
     def compute_returns(self, next_value, value_normalizer=None):
+        """
+        use proper time limits, the difference of use or not is whether use bad_mask
+        """
         if self._use_proper_time_limits:
             if self._use_gae:
                 self.value_preds[-1] = next_value
@@ -187,6 +194,9 @@ class SeparatedReplayBuffer(object):
         masks = self.masks[:-1].reshape(-1, 1)
         active_masks = self.active_masks[:-1].reshape(-1, 1)
         action_log_probs = self.action_log_probs.reshape(-1, self.action_log_probs.shape[-1])
+        if self.factor is not None:
+            # factor = self.factor.reshape(-1,1)
+            factor = self.factor.reshape(-1, self.factor.shape[-1])
         advantages = advantages.reshape(-1, 1)
 
         for indices in sampler:
@@ -210,7 +220,11 @@ class SeparatedReplayBuffer(object):
             else:
                 adv_targ = advantages[indices]
 
-            yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch
+            if self.factor is None:
+                yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch
+            else:
+                factor_batch = factor[indices]
+                yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch, factor_batch
 
     def naive_recurrent_generator(self, advantages, num_mini_batch):
         n_rollout_threads = self.rewards.shape[1]
@@ -233,7 +247,7 @@ class SeparatedReplayBuffer(object):
             active_masks_batch = []
             old_action_log_probs_batch = []
             adv_targ = []
-
+            factor_batch = []
             for offset in range(num_envs_per_batch):
                 ind = perm[start_ind + offset]
                 share_obs_batch.append(self.share_obs[:-1, ind])
@@ -249,6 +263,8 @@ class SeparatedReplayBuffer(object):
                 active_masks_batch.append(self.active_masks[:-1, ind])
                 old_action_log_probs_batch.append(self.action_log_probs[:, ind])
                 adv_targ.append(advantages[:, ind])
+                if self.factor is not None:
+                    factor_batch.append(self.factor[:,ind])
 
             # [N[T, dim]]
             T, N = self.episode_length, num_envs_per_batch
@@ -258,6 +274,8 @@ class SeparatedReplayBuffer(object):
             actions_batch = np.stack(actions_batch, 1)
             if self.available_actions is not None:
                 available_actions_batch = np.stack(available_actions_batch, 1)
+            if self.factor is not None:
+                factor_batch=np.stack(factor_batch,1)
             value_preds_batch = np.stack(value_preds_batch, 1)
             return_batch = np.stack(return_batch, 1)
             masks_batch = np.stack(masks_batch, 1)
@@ -277,14 +295,18 @@ class SeparatedReplayBuffer(object):
                 available_actions_batch = _flatten(T, N, available_actions_batch)
             else:
                 available_actions_batch = None
+            if self.factor is not None:
+                factor_batch=_flatten(T,N,factor_batch)
             value_preds_batch = _flatten(T, N, value_preds_batch)
             return_batch = _flatten(T, N, return_batch)
             masks_batch = _flatten(T, N, masks_batch)
             active_masks_batch = _flatten(T, N, active_masks_batch)
             old_action_log_probs_batch = _flatten(T, N, old_action_log_probs_batch)
             adv_targ = _flatten(T, N, adv_targ)
-
-            yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch
+            if self.factor is not None:
+                yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch, factor_batch
+            else:
+                yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch
 
     def recurrent_generator(self, advantages, num_mini_batch, data_chunk_length):
         episode_length, n_rollout_threads = self.rewards.shape[0:2]
@@ -315,6 +337,8 @@ class SeparatedReplayBuffer(object):
         returns = _cast(self.returns[:-1])
         masks = _cast(self.masks[:-1])
         active_masks = _cast(self.active_masks[:-1])
+        if self.factor is not None:
+            factor = _cast(self.factor)
         # rnn_states = _cast(self.rnn_states[:-1])
         # rnn_states_critic = _cast(self.rnn_states_critic[:-1])
         rnn_states = self.rnn_states[:-1].transpose(1, 0, 2, 3).reshape(-1, *self.rnn_states.shape[2:])
@@ -336,7 +360,7 @@ class SeparatedReplayBuffer(object):
             active_masks_batch = []
             old_action_log_probs_batch = []
             adv_targ = []
-
+            factor_batch = []
             for index in indices:
                 ind = index * data_chunk_length
                 # size [T+1 N M Dim]-->[T N Dim]-->[N T Dim]-->[T*N,Dim]-->[L,Dim]
@@ -354,7 +378,8 @@ class SeparatedReplayBuffer(object):
                 # size [T+1 N Dim]-->[T N Dim]-->[T*N,Dim]-->[1,Dim]
                 rnn_states_batch.append(rnn_states[ind])
                 rnn_states_critic_batch.append(rnn_states_critic[ind])
-
+                if self.factor is not None:
+                    factor_batch.append(factor[ind:ind+data_chunk_length])
             L, N = data_chunk_length, mini_batch_size
 
             # These are all from_numpys of size (N, L, Dim)
@@ -364,6 +389,8 @@ class SeparatedReplayBuffer(object):
             actions_batch = np.stack(actions_batch)
             if self.available_actions is not None:
                 available_actions_batch = np.stack(available_actions_batch)
+            if self.factor is not None:
+                factor_batch = np.stack(factor_batch)
             value_preds_batch = np.stack(value_preds_batch)
             return_batch = np.stack(return_batch)
             masks_batch = np.stack(masks_batch)
@@ -383,11 +410,15 @@ class SeparatedReplayBuffer(object):
                 available_actions_batch = _flatten(L, N, available_actions_batch)
             else:
                 available_actions_batch = None
+            if self.factor is not None:
+                factor_batch = _flatten(L, N, factor_batch)
             value_preds_batch = _flatten(L, N, value_preds_batch)
             return_batch = _flatten(L, N, return_batch)
             masks_batch = _flatten(L, N, masks_batch)
             active_masks_batch = _flatten(L, N, active_masks_batch)
             old_action_log_probs_batch = _flatten(L, N, old_action_log_probs_batch)
             adv_targ = _flatten(L, N, adv_targ)
-
-            yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch
+            if self.factor is not None:
+                yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch, factor_batch
+            else:
+                yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch

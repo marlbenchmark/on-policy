@@ -1,5 +1,7 @@
 # MAPPO
 
+## New Update！！！We support SMAC V2 now～
+
 Chao Yu*, Akash Velu*, Eugene Vinitsky, Jiaxuan Gao, Yu Wang, Alexandre Bayen, and Yi Wu. 
 
 This repository implements MAPPO, a multi-agent variant of PPO. The implementation in this repositorory is used in the paper "The Surprising Effectiveness of PPO in Cooperative Multi-Agent Games" (https://arxiv.org/abs/2103.01955). This repository is heavily based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail. We also make the off-policy repo public, please feel free to try that. [off-policy link](https://github.com/marlbenchmark/off-policy)
@@ -7,7 +9,7 @@ This repository implements MAPPO, a multi-agent variant of PPO. The implementati
 <font color="red"> All hyperparameters and training curves are reported in appendix, we would strongly suggest to double check the important factors before runing the code, such as the rollout threads, episode length, ppo epoch, mini-batches, clip term and so on. <font color='red'>Besides, we have updated the newest results on google football testbed and suggestions about the episode length and parameter-sharing in appendix, welcome to check that. </font>
 
 <font color="red"> We have recently noticed that a lot of papers do not reproduce the mappo results correctly, probably due to the rough hyper-parameters description. We have updated training scripts for each map or scenario in /train/train_xxx_scripts/*.sh. Feel free to try that.</font>
- 
+
 
 ## Environments supported:
 
@@ -15,6 +17,7 @@ This repository implements MAPPO, a multi-agent variant of PPO. The implementati
 - [Hanabi](https://github.com/deepmind/hanabi-learning-environment)
 - [Multiagent Particle-World Environments (MPEs)](https://github.com/openai/multiagent-particle-envs)
 - [Google Research Football (GRF)](https://github.com/google-research/football)
+- [StarCraftII (SMAC) v2](https://github.com/oxwhirl/smacv2)
 
 ## 1. Usage
 **WARNING: by default all experiments assume a shared policy by all agents i.e. there is one neural network shared by all agents**
@@ -61,13 +64,14 @@ Even though we provide requirement.txt, it may have redundancy. We recommend tha
 ``` Bash
 unzip SC2.4.10.zip
 # password is iagreetotheeula
-echo "export SC2PATH=~/StarCraftII/" > ~/.bashrc
+echo "export SC2PATH=~/StarCraftII/" >> ~/.bashrc
 ```
 
 * download SMAC Maps, and move it to `~/StarCraftII/Maps/`.
 
 * To use a stableid, copy `stableid.json` from https://github.com/Blizzard/s2client-proto.git to `~/StarCraftII/`.
 
+For SMAC v2, please refer to https://github.com/oxwhirl/smacv2.git. Make sure you have the `32x32_flat.SC2Map` map file in your `SMAC_Maps` folder.
 
 ### 2.2 Hanabi
 Environment code for Hanabi is developed from the open-source environment code, but has been slightly modified to fit the algorithms used here.  

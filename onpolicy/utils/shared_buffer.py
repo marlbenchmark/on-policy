@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import torch.nn.functional as F
 from onpolicy.utils.util import get_shape_from_obs_space, get_shape_from_act_space
 
 
@@ -10,6 +11,12 @@ def _flatten(T, N, x):
 def _cast(x):
     return x.transpose(1, 2, 0, 3).reshape(-1, *x.shape[3:])
 
+
+def _shuffle_agent_grid(x, y):
+    rows = np.indices((x, y))[0]
+    # cols = np.stack([np.random.permutation(y) for _ in range(x)])
+    cols = np.stack([np.arange(y) for _ in range(x)])
+    return rows, cols
 
 class SharedReplayBuffer(object):
     """
@@ -32,6 +39,8 @@ class SharedReplayBuffer(object):
         self._use_popart = args.use_popart
         self._use_valuenorm = args.use_valuenorm
         self._use_proper_time_limits = args.use_proper_time_limits
+        self.algo = args.algorithm_name
+        self.num_agents = num_agents
 
         obs_shape = get_shape_from_obs_space(obs_space)
         share_obs_shape = get_shape_from_obs_space(cent_obs_space)
@@ -54,6 +63,8 @@ class SharedReplayBuffer(object):
         self.value_preds = np.zeros(
             (self.episode_length + 1, self.n_rollout_threads, num_agents, 1), dtype=np.float32)
         self.returns = np.zeros_like(self.value_preds)
+        self.advantages = np.zeros(
+            (self.episode_length, self.n_rollout_threads, num_agents, 1), dtype=np.float32)
 
         if act_space.__class__.__name__ == 'Discrete':
             self.available_actions = np.ones((self.episode_length + 1, self.n_rollout_threads, num_agents, act_space.n),
@@ -208,20 +219,123 @@ class SharedReplayBuffer(object):
                 gae = 0
                 for step in reversed(range(self.rewards.shape[0])):
                     if self._use_popart or self._use_valuenorm:
-                        delta = self.rewards[step] + self.gamma * value_normalizer.denormalize(
-                            self.value_preds[step + 1]) * self.masks[step + 1] \
-                                - value_normalizer.denormalize(self.value_preds[step])
-                        gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
-                        self.returns[step] = gae + value_normalizer.denormalize(self.value_preds[step])
+                        if self.algo == "mat" or self.algo == "mat_dec":
+                            value_t = value_normalizer.denormalize(self.value_preds[step])
+                            value_t_next = value_normalizer.denormalize(self.value_preds[step + 1])
+                            rewards_t = self.rewards[step]
+
+                            # mean_v_t = np.mean(value_t, axis=-2, keepdims=True)
+                            # mean_v_t_next = np.mean(value_t_next, axis=-2, keepdims=True)
+                            # delta = rewards_t + self.gamma * self.masks[step + 1] * mean_v_t_next - mean_v_t
+
+                            delta = rewards_t + self.gamma * self.masks[step + 1] * value_t_next - value_t
+                            gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
+                            self.advantages[step] = gae
+                            self.returns[step] = gae + value_t
+                        else:
+                            delta = self.rewards[step] + self.gamma * value_normalizer.denormalize(
+                                self.value_preds[step + 1]) * self.masks[step + 1] \
+                                    - value_normalizer.denormalize(self.value_preds[step])
+                            gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
+                            self.returns[step] = gae + value_normalizer.denormalize(self.value_preds[step])
                     else:
-                        delta = self.rewards[step] + self.gamma * self.value_preds[step + 1] * self.masks[step + 1] - \
-                                self.value_preds[step]
-                        gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
-                        self.returns[step] = gae + self.value_preds[step]
+                        if self.algo == "mat" or self.algo == "mat_dec":
+                            rewards_t = self.rewards[step]
+                            mean_v_t = np.mean(self.value_preds[step], axis=-2, keepdims=True)
+                            mean_v_t_next = np.mean(self.value_preds[step + 1], axis=-2, keepdims=True)
+                            delta = rewards_t + self.gamma * self.masks[step + 1] * mean_v_t_next - mean_v_t
+
+                            # delta = rewards_t + self.gamma * self.value_preds[step + 1] * \
+                            #         self.masks[step + 1] - self.value_preds[step]
+                            gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
+                            self.advantages[step] = gae
+                            self.returns[step] = gae + self.value_preds[step]
+
+                        else:
+                            delta = self.rewards[step] + self.gamma * self.value_preds[step + 1] * \
+                                    self.masks[step + 1] - self.value_preds[step]
+                            gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
+                            self.returns[step] = gae + self.value_preds[step]
             else:
                 self.returns[-1] = next_value
                 for step in reversed(range(self.rewards.shape[0])):
                     self.returns[step] = self.returns[step + 1] * self.gamma * self.masks[step + 1] + self.rewards[step]
+
+    def feed_forward_generator_transformer(self, advantages, num_mini_batch=None, mini_batch_size=None):
+        """
+        Yield training data for MLP policies.
+        :param advantages: (np.ndarray) advantage estimates.
+        :param num_mini_batch: (int) number of minibatches to split the batch into.
+        :param mini_batch_size: (int) number of samples in each minibatch.
+        """
+        episode_length, n_rollout_threads, num_agents = self.rewards.shape[0:3]
+        batch_size = n_rollout_threads * episode_length
+
+        if mini_batch_size is None:
+            assert batch_size >= num_mini_batch, (
+                "PPO requires the number of processes ({}) "
+                "* number of steps ({}) = {} "
+                "to be greater than or equal to the number of PPO mini batches ({})."
+                "".format(n_rollout_threads, episode_length,
+                          n_rollout_threads * episode_length,
+                          num_mini_batch))
+            mini_batch_size = batch_size // num_mini_batch
+
+        rand = torch.randperm(batch_size).numpy()
+        sampler = [rand[i * mini_batch_size:(i + 1) * mini_batch_size] for i in range(num_mini_batch)]
+        rows, cols = _shuffle_agent_grid(batch_size, num_agents)
+
+        # keep (num_agent, dim)
+        share_obs = self.share_obs[:-1].reshape(-1, *self.share_obs.shape[2:])
+        share_obs = share_obs[rows, cols]
+        obs = self.obs[:-1].reshape(-1, *self.obs.shape[2:])
+        obs = obs[rows, cols]
+        rnn_states = self.rnn_states[:-1].reshape(-1, *self.rnn_states.shape[2:])
+        rnn_states = rnn_states[rows, cols]
+        rnn_states_critic = self.rnn_states_critic[:-1].reshape(-1, *self.rnn_states_critic.shape[2:])
+        rnn_states_critic = rnn_states_critic[rows, cols]
+        actions = self.actions.reshape(-1, *self.actions.shape[2:])
+        actions = actions[rows, cols]
+        if self.available_actions is not None:
+            available_actions = self.available_actions[:-1].reshape(-1, *self.available_actions.shape[2:])
+            available_actions = available_actions[rows, cols]
+        value_preds = self.value_preds[:-1].reshape(-1, *self.value_preds.shape[2:])
+        value_preds = value_preds[rows, cols]
+        returns = self.returns[:-1].reshape(-1, *self.returns.shape[2:])
+        returns = returns[rows, cols]
+        masks = self.masks[:-1].reshape(-1, *self.masks.shape[2:])
+        masks = masks[rows, cols]
+        active_masks = self.active_masks[:-1].reshape(-1, *self.active_masks.shape[2:])
+        active_masks = active_masks[rows, cols]
+        action_log_probs = self.action_log_probs.reshape(-1, *self.action_log_probs.shape[2:])
+        action_log_probs = action_log_probs[rows, cols]
+        advantages = advantages.reshape(-1, *advantages.shape[2:])
+        advantages = advantages[rows, cols]
+
+        for indices in sampler:
+            # [L,T,N,Dim]-->[L*T,N,Dim]-->[index,N,Dim]-->[index*N, Dim]
+            share_obs_batch = share_obs[indices].reshape(-1, *share_obs.shape[2:])
+            obs_batch = obs[indices].reshape(-1, *obs.shape[2:])
+            rnn_states_batch = rnn_states[indices].reshape(-1, *rnn_states.shape[2:])
+            rnn_states_critic_batch = rnn_states_critic[indices].reshape(-1, *rnn_states_critic.shape[2:])
+            actions_batch = actions[indices].reshape(-1, *actions.shape[2:])
+            if self.available_actions is not None:
+                available_actions_batch = available_actions[indices].reshape(-1, *available_actions.shape[2:])
+            else:
+                available_actions_batch = None
+            value_preds_batch = value_preds[indices].reshape(-1, *value_preds.shape[2:])
+            return_batch = returns[indices].reshape(-1, *returns.shape[2:])
+            masks_batch = masks[indices].reshape(-1, *masks.shape[2:])
+            active_masks_batch = active_masks[indices].reshape(-1, *active_masks.shape[2:])
+            old_action_log_probs_batch = action_log_probs[indices].reshape(-1, *action_log_probs.shape[2:])
+            if advantages is None:
+                adv_targ = None
+            else:
+                adv_targ = advantages[indices].reshape(-1, *advantages.shape[2:])
+
+            yield share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, \
+                  value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, \
+                  adv_targ, available_actions_batch
 
     def feed_forward_generator(self, advantages, num_mini_batch=None, mini_batch_size=None):
         """
