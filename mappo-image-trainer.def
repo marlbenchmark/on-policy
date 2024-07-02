@@ -1,0 +1,28 @@
+Bootstrap: docker
+From: nvidia/cuda:11.0-base-ubuntu20.04
+
+%post
+    # Update and install system dependencies
+    apt-get update && apt-get install -y python3 python3-pip git
+    # Replace with the specific version of Python you need
+    update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+    
+    # Install Python dependencies
+    # Add any other dependencies from your requirements.txt
+    pip install -r /scratch/on-policy/requirements.txt
+
+    # Clone your project repository if necessary
+    # git clone https://yourprojectrepository.git /path/to/clone/your/project
+
+%environment
+    export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+    export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+
+%runscript
+    # Adjust the command below to run your specific training script
+    # For example, if your training script is located at /path/to/your/project/train_script.py
+    python /path/to/your/project/train_script.py
+
+%labels
+    Author "Malhaar"
+    Version "0.1"

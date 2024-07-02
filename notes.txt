@@ -1,0 +1,6 @@
+Running SMAC for 10v10:
+ train_smac.py --env_name Starcraft2 --algorithm_name "rmappo" --experiment_name tune2 --map_name 10gen_protoss \
+ --seed ${seed} --units 10v10 --n_training_threads 1 --n_rollout_threads 8 --num_mini_batch 1 --episode_length 400 \ 
+ --num_env_steps 20000000 --ppo_epoch 5 --use_value_active_masks --use_eval --eval_episodes 32
+
+ # I think this does not let it run with CUDA. Nvm it does by default
