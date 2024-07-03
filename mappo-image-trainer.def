@@ -1,27 +1,36 @@
 Bootstrap: docker
 From: nvidia/cuda:11.0-base-ubuntu20.04
 
+%environment
+    export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+    export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+    
+
 %post
     # Update and install system dependencies
+    
     apt-get update && apt-get install -y python3 python3-pip git
     # Replace with the specific version of Python you need
     update-alternatives --install /usr/bin/python python /usr/bin/python3 1
     
-    # Install Python dependencies
-    # Add any other dependencies from your requirements.txt
-    pip install -r /scratch/on-policy/requirements.txt
+    # Clone repo
+    git clone https://github.com/Malhaar-k/on-policy-dissertation.git --branch master
 
-    # Clone your project repository if necessary
-    # git clone https://yourprojectrepository.git /path/to/clone/your/project
+    conda create -n marl python==3.6.1
+    conda activate marl
+    pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+    
+    pip install -r on-policy-dissertation/requirements.txt
 
-%environment
-    export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-    export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+
+    echo "export SC2PATH=~/StarCraftII/" >> ~/.bashrc
+
+    chmod +x onpolicy/scripts/train_smac_scripts/train_smac_3m.sh
 
 %runscript
     # Adjust the command below to run your specific training script
     # For example, if your training script is located at /path/to/your/project/train_script.py
-    python /path/to/your/project/train_script.py
+    ./onpolicy/scripts/train_smac_scripts/train_smac_3m.sh
 
 %labels
     Author "Malhaar"
