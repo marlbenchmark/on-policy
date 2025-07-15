@@ -10,7 +10,7 @@ import torch
 from onpolicy.config import get_config
 from onpolicy.envs.env_wrappers import ShareSubprocVecEnv, ShareDummyVecEnv
 
-"""Train script for SMAC."""
+"""Eval script for SMAC."""
 
 
 def parse_smacv2_distribution(args):
@@ -47,50 +47,6 @@ def parse_smacv2_distribution(args):
             "observe": True,
         }
     return distribution_config
-
-
-def make_train_env(all_args):
-    def get_env_fn(rank):
-        def init_env():
-            print(
-                f"env name: {all_args.env_name}, map name: {all_args.map_name}, rank: {rank}"
-            )
-            if all_args.env_name == "StarCraft2":
-                from onpolicy.envs.starcraft2.StarCraft2_Env import StarCraft2Env
-
-                env = StarCraft2Env(all_args)
-            elif all_args.env_name == "StarCraft2v2":
-                from onpolicy.envs.starcraft2.SMACv2_modified import SMACv2
-
-                env = SMACv2(
-                    capability_config=parse_smacv2_distribution(all_args),
-                    map_name=all_args.map_name,
-                )
-            elif all_args.env_name == "SMAC":
-                from onpolicy.envs.starcraft2.SMAC import SMAC
-
-                env = SMAC(map_name=all_args.map_name)
-            elif all_args.env_name == "SMACv2":
-                from onpolicy.envs.starcraft2.SMACv2 import SMACv2
-
-                env = SMACv2(
-                    capability_config=parse_smacv2_distribution(all_args),
-                    map_name=all_args.map_name,
-                )
-            else:
-                print("Can not support the " + all_args.env_name + "environment.")
-                raise NotImplementedError
-            env.seed(all_args.seed + rank * 1000)
-            return env
-
-        return init_env
-
-    if all_args.n_rollout_threads == 1:
-        return ShareDummyVecEnv([get_env_fn(0)])
-    else:
-        return ShareSubprocVecEnv(
-            [get_env_fn(i) for i in range(all_args.n_rollout_threads)]
-        )
 
 
 def make_eval_env(all_args):
@@ -149,7 +105,8 @@ def parse_args(args, parser):
     parser.add_argument("--use_state_agent", action="store_false", default=True)
     parser.add_argument("--use_mustalive", action="store_false", default=True)
     parser.add_argument("--add_center_xy", action="store_false", default=True)
-    parser.add_argument("--share_actor_by_unit_type", action="store_false", default=False)
+    parser.add_argument("--num_eval_seeds", type=int, default=1, help="number of seeds to evaluate on")
+    parser.add_argument("--share_policy_per_unit_type", action="store_true", default=False)
 
     all_args = parser.parse_known_args(args)[0]
 
@@ -193,15 +150,14 @@ def main(args):
     if all_args.cuda and torch.cuda.is_available():
         print("choose to use gpu...")
         device = torch.device("cuda:0")
-        torch.set_num_threads(all_args.n_training_threads)
         if all_args.cuda_deterministic:
             torch.backends.cudnn.benchmark = False
             torch.backends.cudnn.deterministic = True
     else:
         print("choose to use cpu...")
         device = torch.device("cpu")
-        torch.set_num_threads(all_args.n_training_threads)
 
+    # run dir
     run_dir = (
         Path(os.path.split(os.path.dirname(os.path.abspath(__file__)))[0] + "/results")
         / all_args.env_name
@@ -212,8 +168,9 @@ def main(args):
     if not run_dir.exists():
         os.makedirs(str(run_dir))
 
+    wandb_run = None
     if all_args.use_wandb:
-        run = wandb.init(
+        wandb_run = wandb.init(
             config=all_args,
             project=all_args.env_name,
             entity=all_args.user_name,
@@ -225,29 +182,12 @@ def main(args):
             + str(all_args.units)
             + "_seed"
             + str(all_args.seed),
-            #  group=all_args.map_name,
+            group=all_args.map_name,
             dir=str(run_dir),
-            job_type="training",
+            job_type="eval",
             reinit=True,
         )
-        all_args = wandb.config  # for wandb sweep
-    else:
-        if not run_dir.exists():
-            curr_run = "run1"
-        else:
-            exst_run_nums = [
-                int(str(folder.name).split("run")[1])
-                for folder in run_dir.iterdir()
-                if str(folder.name).startswith("run")
-            ]
-            if len(exst_run_nums) == 0:
-                curr_run = "run1"
-            else:
-                curr_run = "run%i" % (max(exst_run_nums) + 1)
-        run_dir = run_dir / curr_run
-        if not run_dir.exists():
-            os.makedirs(str(run_dir))
-
+    
     setproctitle.setproctitle(
         str(all_args.algorithm_name)
         + "-"
@@ -258,38 +198,15 @@ def main(args):
         + str(all_args.user_name)
     )
 
-    # seed
-    torch.manual_seed(all_args.seed)
-    torch.cuda.manual_seed_all(all_args.seed)
-    np.random.seed(all_args.seed)
-
-    # env
-    envs = make_train_env(all_args)
-    eval_envs = make_eval_env(all_args) if all_args.use_eval else None
-
     if all_args.env_name == "SMAC":
         from smac.env.starcraft2.maps import get_map_params
-
         num_agents = get_map_params(all_args.map_name)["n_agents"]
     elif all_args.env_name == "StarCraft2":
         from onpolicy.envs.starcraft2.smac_maps import get_map_params
-
         num_agents = get_map_params(all_args.map_name)["n_agents"]
     elif all_args.env_name == "SMACv2" or all_args.env_name == "StarCraft2v2":
         from smacv2.env.starcraft2.maps import get_map_params
-
         num_agents = parse_smacv2_distribution(all_args)["n_units"]
-
-    config = {
-        "all_args": all_args,
-        "envs": envs,
-        "eval_envs": eval_envs,
-        "num_agents": num_agents,
-        "device": device,
-        "run_dir": run_dir,
-    }
-
-
 
     if all_args.share_policy:
         from onpolicy.runner.shared.smac_runner import SMACRunner as Runner
@@ -301,23 +218,42 @@ def main(args):
 
     # Takes precedence over share_policy
     if all_args.share_policy_per_unit_type:
+        print("Using semi-shared runner with share_policy_per_unit_type")
         from onpolicy.runner.semi_shared.smac_runner import SMACRunner as Runner
 
+    for run, seed in enumerate(range(all_args.num_eval_seeds)):
+        all_args.seed = seed
+        print("seed is :", all_args.seed)
+        # seed
+        torch.manual_seed(all_args.seed)
+        torch.cuda.manual_seed_all(all_args.seed)
+        np.random.seed(42 + all_args.seed)  # Avoid seed collision with training-script
 
-    # run experiments
-    runner = Runner(config)
-    runner.run()
+        # env
+        eval_envs = make_eval_env(all_args)
 
-    # post process
-    envs.close()
-    if all_args.use_eval and eval_envs is not envs:
+        config = {
+            "all_args": all_args,
+            "envs": eval_envs, # dummy
+            "eval_envs": eval_envs,
+            "num_agents": num_agents,
+            "device": device,
+            "run_dir": run_dir,
+        }
+
+        if all_args.model_dir is None:
+            raise ValueError( "You need to specify a model_dir to load the model from." )
+        
+        runner = Runner(config)
+        # The runner should load the model if model_dir is specified
+
+        runner.eval(run)
+
+        # post process
         eval_envs.close()
 
-    if all_args.use_wandb:
-        run.finish()
-    else:
-        runner.writter.export_scalars_to_json(str(runner.log_dir + "/summary.json"))
-        runner.writter.close()
+    if wandb_run is not None:
+        wandb_run.finish()
 
 
 if __name__ == "__main__":

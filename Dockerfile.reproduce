@@ -144,7 +144,7 @@ RUN pip install -e ./on-policy
 #     imageio \
 #     protobuf==3.20.3
 
-RUN pip install typing_extensions>=4.5 --upgrade
+RUN pip install "typing_extensions>=4.5" --upgrade
 
 # RUN pip install \
 #     packaging>=24 \
