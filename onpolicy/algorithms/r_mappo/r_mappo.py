@@ -128,6 +128,11 @@ class R_MAPPO():
         # actor update
         imp_weights = torch.exp(action_log_probs - old_action_log_probs_batch)
 
+        with torch.no_grad():
+            log_ratio = action_log_probs - old_action_log_probs_batch
+            approx_kl = ((imp_weights - 1) - log_ratio).mean().item()
+            clipfrac = ((imp_weights - 1.0).abs() > self.clip_param).float().mean().item()
+
         surr1 = imp_weights * adv_targ
         surr2 = torch.clamp(imp_weights, 1.0 - self.clip_param, 1.0 + self.clip_param) * adv_targ
 
@@ -166,7 +171,7 @@ class R_MAPPO():
 
         self.policy.critic_optimizer.step()
 
-        return value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, imp_weights
+        return value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, imp_weights, approx_kl, clipfrac
 
     def train(self, buffer, update_actor=True):
         """
@@ -195,6 +200,8 @@ class R_MAPPO():
         train_info['actor_grad_norm'] = 0
         train_info['critic_grad_norm'] = 0
         train_info['ratio'] = 0
+        train_info['approx_kl'] = 0
+        train_info['clipfrac'] = 0
 
         for _ in range(self.ppo_epoch):
             if self._use_recurrent_policy:
@@ -206,7 +213,7 @@ class R_MAPPO():
 
             for sample in data_generator:
 
-                value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, imp_weights \
+                value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, imp_weights, approx_kl, clipfrac \
                     = self.ppo_update(sample, update_actor)
 
                 train_info['value_loss'] += value_loss.item()
@@ -215,6 +222,8 @@ class R_MAPPO():
                 train_info['actor_grad_norm'] += actor_grad_norm
                 train_info['critic_grad_norm'] += critic_grad_norm
                 train_info['ratio'] += imp_weights.mean()
+                train_info['approx_kl'] += approx_kl
+                train_info['clipfrac'] += clipfrac
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 

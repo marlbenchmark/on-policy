@@ -12,6 +12,7 @@ class MPERunner(Runner):
     """Runner class to perform training, evaluation. and data collection for the MPEs. See parent class for details."""
     def __init__(self, config):
         super(MPERunner, self).__init__(config)
+        self.best_eval_return = -float('inf')
 
     def run(self):
         self.warmup()   
@@ -71,6 +72,22 @@ class MPERunner(Runner):
 
                 train_infos["average_episode_rewards"] = np.mean(self.buffer.rewards) * self.episode_length
                 print("average episode rewards is {}".format(train_infos["average_episode_rewards"]))
+
+                # charts metrics
+                train_infos["charts/mean_episode_return"] = train_infos["average_episode_rewards"]
+                for agent_id in range(self.num_agents):
+                    train_infos["charts/agent_%d_return" % agent_id] = \
+                        np.mean(self.buffer.rewards[:, :, agent_id, :]) * self.episode_length
+                n_dones = int(np.sum(1.0 - self.buffer.masks[1:, :, 0, 0]))
+                train_infos["charts/mean_episode_length"] = \
+                    float(self.episode_length * self.n_rollout_threads) / max(n_dones, 1)
+
+                # rename loss keys to losses/ prefix for clarity
+                for key in ["value_loss", "policy_loss", "dist_entropy", "actor_grad_norm",
+                            "critic_grad_norm", "ratio", "approx_kl", "clipfrac"]:
+                    if key in train_infos:
+                        train_infos["losses/" + key] = train_infos[key]
+
                 self.log_train(train_infos, total_num_steps)
                 self.log_env(env_infos, total_num_steps)
 
@@ -176,11 +193,32 @@ class MPERunner(Runner):
             eval_masks[eval_dones == True] = np.zeros(((eval_dones == True).sum(), 1), dtype=np.float32)
 
         eval_episode_rewards = np.array(eval_episode_rewards)
+        # shape: [episode_length, n_eval_threads, num_agents, 1]
+        ep_rewards_sum = np.sum(eval_episode_rewards, axis=0)
+        # shape: [n_eval_threads, num_agents, 1]
+
         eval_env_infos = {}
-        eval_env_infos['eval_average_episode_rewards'] = np.sum(np.array(eval_episode_rewards), axis=0)
-        eval_average_episode_rewards = np.mean(eval_env_infos['eval_average_episode_rewards'])
+        eval_env_infos['eval_average_episode_rewards'] = ep_rewards_sum
+        eval_average_episode_rewards = np.mean(ep_rewards_sum)
         print("eval average episode rewards of agent: " + str(eval_average_episode_rewards))
         self.log_env(eval_env_infos, total_num_steps)
+
+        # detailed eval metrics
+        eval_infos = {}
+        eval_infos['eval/mean_return'] = float(eval_average_episode_rewards)
+        eval_infos['eval/mean_episode_length'] = float(self.episode_length)
+        for agent_id in range(self.num_agents):
+            eval_infos['eval/agent_%d_return' % agent_id] = float(np.mean(ep_rewards_sum[:, agent_id, :]))
+
+        if eval_infos['eval/mean_return'] > self.best_eval_return:
+            self.best_eval_return = eval_infos['eval/mean_return']
+        eval_infos['eval/best_return'] = self.best_eval_return
+
+        for k, v in eval_infos.items():
+            if self.use_wandb:
+                wandb.log({k: v}, step=total_num_steps)
+            else:
+                self.writter.add_scalars(k, {k: v}, total_num_steps)
 
     @torch.no_grad()
     def render(self):
