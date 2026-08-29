@@ -52,7 +52,7 @@ class MPERunner(Runner):
                 self.save()
 
             # log information
-            if episode % self.log_interval == 0:
+            if episode % self.log_interval == 0 or episode == episodes - 1:
                 end = time.time()
                 print("\n Scenario {} Algo {} Exp {} updates {}/{} episodes, total num timesteps {}/{}, FPS {}.\n"
                         .format(self.all_args.scenario_name,
@@ -90,9 +90,9 @@ class MPERunner(Runner):
 
         for agent_id in range(self.num_agents):
             if not self.use_centralized_V:
-                share_obs = np.array(list(obs[:, agent_id]))
+                share_obs = np.array([env_obs[agent_id] for env_obs in obs])
             self.buffer[agent_id].share_obs[0] = share_obs.copy()
-            self.buffer[agent_id].obs[0] = np.array(list(obs[:, agent_id])).copy()
+            self.buffer[agent_id].obs[0] = np.array([env_obs[agent_id] for env_obs in obs]).copy()
 
     @torch.no_grad()
     def collect(self, step):
@@ -164,10 +164,10 @@ class MPERunner(Runner):
 
         for agent_id in range(self.num_agents):
             if not self.use_centralized_V:
-                share_obs = np.array(list(obs[:, agent_id]))
+                share_obs = np.array([env_obs[agent_id] for env_obs in obs])
 
             self.buffer[agent_id].insert(share_obs,
-                                        np.array(list(obs[:, agent_id])),
+                                        np.array([env_obs[agent_id] for env_obs in obs]),
                                         rnn_states[:, agent_id],
                                         rnn_states_critic[:, agent_id],
                                         actions[:, agent_id],
@@ -255,9 +255,9 @@ class MPERunner(Runner):
                 temp_actions_env = []
                 for agent_id in range(self.num_agents):
                     if not self.use_centralized_V:
-                        share_obs = np.array(list(obs[:, agent_id]))
+                        share_obs = np.array([env_obs[agent_id] for env_obs in obs])
                     self.trainer[agent_id].prep_rollout()
-                    action, rnn_state = self.trainer[agent_id].policy.act(np.array(list(obs[:, agent_id])),
+                    action, rnn_state = self.trainer[agent_id].policy.act(np.array([env_obs[agent_id] for env_obs in obs]),
                                                                         rnn_states[:, agent_id],
                                                                         masks[:, agent_id],
                                                                         deterministic=True)
