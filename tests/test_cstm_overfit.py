@@ -14,20 +14,24 @@ def test_single_head_overfits_fixed_minibatch():
     ), dim=1)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
     with torch.no_grad():
-        _, initial_logits = model(features)
+        _, initial_heads, _, _ = model(features)
+        initial_logits = initial_heads[:, 0]
         initial_loss = F.cross_entropy(initial_logits.flatten(0, 1),
                                        targets.flatten()).item()
     for _ in range(250):
-        _, logits = model(features)
+        _, heads, _, _ = model(features)
+        logits = heads[:, 0]
         loss = F.cross_entropy(logits.flatten(0, 1), targets.flatten())
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
     with torch.no_grad():
-        _, logits = model(features)
+        _, heads, _, disagreement = model(features)
+        logits = heads[:, 0]
         final_loss = F.cross_entropy(logits.flatten(0, 1), targets.flatten()).item()
         accuracy = (logits.argmax(-1) == targets).float().mean().item()
         majority = torch.bincount(targets.flatten(), minlength=5).max().item() / targets.numel()
+    torch.testing.assert_close(disagreement, torch.zeros_like(disagreement))
     assert final_loss < initial_loss * 0.2
     assert accuracy > 0.95
     assert accuracy > majority

@@ -16,6 +16,16 @@ class CSTMReplayBuffer(SharedReplayBuffer):
              num_agents - 1, 1), dtype=np.int64)
         self.teammate_active_masks = np.ones_like(
             self.teammate_actions, dtype=np.float32)
+        self.num_heads = args.cstm_num_heads
+        self.bootstrap_prob = args.cstm_bootstrap_prob
+        if self.num_heads < 1:
+            raise ValueError("cstm_num_heads must be positive")
+        if not 0 < self.bootstrap_prob <= 1:
+            raise ValueError("cstm_bootstrap_prob must be in (0, 1]")
+        self.bootstrap_rng = np.random.RandomState(args.seed + 7919)
+        self.teammate_bootstrap_masks = np.ones(
+            (self.episode_length, self.n_rollout_threads, num_agents,
+             self.num_heads, num_agents - 1, 1), dtype=np.float32)
 
     @staticmethod
     def build_teammate_targets(actions, active_masks=None):
@@ -32,16 +42,45 @@ class CSTMReplayBuffer(SharedReplayBuffer):
                  for agent_id in range(num_agents)], axis=1).astype(np.float32)
         return targets, masks
 
+    @staticmethod
+    def build_bootstrap_masks(active_masks, num_heads, bootstrap_prob, rng):
+        """Sample head membership once, then retain it for all PPO epochs."""
+        if num_heads < 1:
+            raise ValueError("num_heads must be positive")
+        if not 0 < bootstrap_prob <= 1:
+            raise ValueError("bootstrap_prob must be in (0, 1]")
+        expanded = np.repeat(active_masks[:, :, None, :, :],
+                             num_heads, axis=2).astype(np.float32)
+        if num_heads == 1:
+            return expanded
+        sampled = rng.binomial(1, bootstrap_prob, size=expanded.shape).astype(
+            np.float32)
+        masks = sampled * expanded
+        for head in range(num_heads):
+            if masks[:, :, head].sum() == 0:
+                valid = np.argwhere(expanded[:, :, head] > 0)
+                if valid.size:
+                    index = valid[0]
+                    masks[index[0], index[1], head, index[2], index[3]] = 1.0
+        return masks
+
     def insert(self, share_obs, obs, rnn_states_actor, rnn_states_critic,
                actions, action_log_probs, value_preds, rewards, masks,
                bad_masks=None, active_masks=None, available_actions=None,
-               teammate_actions=None, teammate_active_masks=None):
+               teammate_actions=None, teammate_active_masks=None,
+               teammate_bootstrap_masks=None):
         if teammate_actions is None:
             raise ValueError("CSTM buffer requires teammate action labels")
         step = self.step
         self.teammate_actions[step] = teammate_actions.copy()
         if teammate_active_masks is not None:
             self.teammate_active_masks[step] = teammate_active_masks.copy()
+        if teammate_bootstrap_masks is None:
+            teammate_bootstrap_masks = self.build_bootstrap_masks(
+                self.teammate_active_masks[step], self.num_heads,
+                self.bootstrap_prob, self.bootstrap_rng)
+        self.teammate_bootstrap_masks[step] = \
+            teammate_bootstrap_masks.copy()
         super().insert(
             share_obs, obs, rnn_states_actor, rnn_states_critic, actions,
             action_log_probs, value_preds, rewards, masks, bad_masks,
@@ -72,6 +111,9 @@ class CSTMReplayBuffer(SharedReplayBuffer):
             -1, *self.teammate_actions.shape[3:])
         teammate_active_masks = self.teammate_active_masks.transpose(
             1, 2, 0, 3, 4).reshape(-1, *self.teammate_active_masks.shape[3:])
+        teammate_bootstrap_masks = self.teammate_bootstrap_masks.transpose(
+            1, 2, 0, 3, 4, 5).reshape(
+                -1, *self.teammate_bootstrap_masks.shape[3:])
         rnn_states = self.rnn_states[:-1].transpose(1, 2, 0, 3, 4).reshape(
             -1, *self.rnn_states.shape[3:])
         rnn_states_critic = self.rnn_states_critic[:-1].transpose(
@@ -90,8 +132,9 @@ class CSTMReplayBuffer(SharedReplayBuffer):
                 end = start + data_chunk_length
                 arrays = (share_obs, obs, actions, value_preds, returns, masks,
                           active_masks, action_log_probs, advantages,
-                          teammate_actions, teammate_active_masks)
-                for bucket, array in zip(sequences[:11], arrays):
+                          teammate_actions, teammate_active_masks,
+                          teammate_bootstrap_masks)
+                for bucket, array in zip(sequences, arrays):
                     bucket.append(array[start:end])
                 if available_actions is not None:
                     available_batch.append(available_actions[start:end])
@@ -100,11 +143,11 @@ class CSTMReplayBuffer(SharedReplayBuffer):
 
             L, N = data_chunk_length, len(indices)
             flat = [_flatten(L, N, np.stack(bucket, axis=1))
-                    for bucket in sequences[:11]]
+                    for bucket in sequences]
             share_obs_batch, obs_batch, actions_batch, value_preds_batch, \
                 return_batch, masks_batch, active_masks_batch, \
                 old_action_log_probs_batch, adv_targ, teammate_actions_batch, \
-                teammate_active_masks_batch = flat
+                teammate_active_masks_batch, teammate_bootstrap_masks_batch = flat
             available_actions_batch = (
                 _flatten(L, N, np.stack(available_batch, axis=1))
                 if available_actions is not None else None)
@@ -118,4 +161,4 @@ class CSTMReplayBuffer(SharedReplayBuffer):
                    return_batch, masks_batch, active_masks_batch,
                    old_action_log_probs_batch, adv_targ,
                    available_actions_batch, teammate_actions_batch,
-                   teammate_active_masks_batch)
+                   teammate_active_masks_batch, teammate_bootstrap_masks_batch)

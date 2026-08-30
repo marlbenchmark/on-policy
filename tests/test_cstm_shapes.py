@@ -17,6 +17,14 @@ def test_teammate_target_order_and_shape():
     np.testing.assert_array_equal(targets[0, 2, :, 0], [0, 1])
 
 
+def test_single_head_bootstrap_preserves_all_active_targets():
+    active_masks = np.ones((2, 3, 2, 1), dtype=np.float32)
+    result = CSTMReplayBuffer.build_bootstrap_masks(
+        active_masks, 1, 0.8, np.random.RandomState(5))
+    assert result.shape == (2, 3, 1, 2, 1)
+    np.testing.assert_array_equal(result[:, :, 0], active_masks)
+
+
 def test_actor_and_decoder_shapes():
     args = make_args()
     actor = B1Actor(args, spaces.Box(-1, 1, shape=(7,), dtype=np.float32),

@@ -29,9 +29,10 @@ class CSTMPolicy(R_MAPPOPolicy):
     def evaluate_actions_with_teammates(
             self, cent_obs, obs, rnn_states_actor, rnn_states_critic, action,
             masks, available_actions=None, active_masks=None):
-        action_log_probs, dist_entropy, teammate_logits = \
+        action_log_probs, dist_entropy, teammate_logits, teammate_uncertainty = \
             self.actor.evaluate_actions_with_teammates(
                 obs, rnn_states_actor, action, masks, available_actions,
                 active_masks)
         values, _ = self.critic(cent_obs, rnn_states_critic, masks)
-        return values, action_log_probs, dist_entropy, teammate_logits
+        return (values, action_log_probs, dist_entropy, teammate_logits,
+                teammate_uncertainty)

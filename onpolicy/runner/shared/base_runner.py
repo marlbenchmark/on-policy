@@ -66,7 +66,7 @@ class Runner(object):
         if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
             from onpolicy.algorithms.mat.mat_trainer import MATTrainer as TrainAlgo
             from onpolicy.algorithms.mat.algorithm.transformer_policy import TransformerPolicy as Policy
-        elif self.algorithm_name == "cstm_mappo":
+        elif self.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
             from onpolicy.algorithms.cstm_mappo.cstm_mappo import CSTM_MAPPO as TrainAlgo
             from onpolicy.algorithms.cstm_mappo.algorithm.cstm_policy import CSTMPolicy as Policy
         else:
@@ -95,7 +95,7 @@ class Runner(object):
             self.trainer = TrainAlgo(self.all_args, self.policy, device = self.device)
         
         # buffer
-        if self.algorithm_name == "cstm_mappo":
+        if self.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
             from onpolicy.utils.cstm_buffer import CSTMReplayBuffer
             self.buffer = CSTMReplayBuffer(self.all_args,
                                            self.num_agents,
@@ -167,7 +167,7 @@ class Runner(object):
             self.policy.restore(model_dir)
         else:
             policy_actor_state_dict = torch.load(str(self.model_dir) + '/actor.pt')
-            if self.algorithm_name == "cstm_mappo":
+            if self.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
                 incompatible = self.policy.actor.load_state_dict(
                     policy_actor_state_dict, strict=False)
                 if incompatible.unexpected_keys:

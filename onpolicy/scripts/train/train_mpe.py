@@ -65,7 +65,7 @@ def main(args):
     parser = get_config()
     all_args = parse_args(args, parser)
 
-    if all_args.algorithm_name in ("rmappo", "cstm_mappo"):
+    if all_args.algorithm_name in ("rmappo", "cstm_mappo", "ua_rep_mappo"):
         print("u are choosing to use {}, we set use_recurrent_policy to be True".format(all_args.algorithm_name))
         all_args.use_recurrent_policy = True
         all_args.use_naive_recurrent_policy = False
@@ -151,7 +151,7 @@ def main(args):
 
     # run experiments
     if all_args.share_policy:
-        if all_args.algorithm_name == "cstm_mappo":
+        if all_args.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
             from onpolicy.runner.shared.cstm_mpe_runner import CSTMMPErunner as Runner
         else:
             from onpolicy.runner.shared.mpe_runner import MPERunner as Runner

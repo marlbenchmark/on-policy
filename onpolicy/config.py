@@ -158,7 +158,7 @@ def get_config():
 
     # prepare parameters
     parser.add_argument("--algorithm_name", type=str,
-                        default='mappo', choices=["rmappo", "mappo", "cstm_mappo", "happo", "hatrpo", "mat", "mat_dec"])
+                        default='mappo', choices=["rmappo", "mappo", "cstm_mappo", "ua_rep_mappo", "happo", "hatrpo", "mat", "mat_dec"])
 
     parser.add_argument("--experiment_name", type=str, default="check", help="an identifier to distinguish different experiment.")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for numpy/torch")
@@ -227,6 +227,31 @@ def get_config():
                         help="dimension of the LIAM-style teammate representation")
     parser.add_argument("--cstm_aux_coef", type=float, default=0.1,
                         help="coefficient for teammate-action cross entropy")
+    parser.add_argument("--cstm_num_heads", type=int, default=1,
+                        help="number of bootstrap teammate-action decoder heads")
+    parser.add_argument("--cstm_bootstrap_prob", type=float, default=0.8,
+                        help="per-target inclusion probability for each bootstrap head")
+    parser.add_argument("--cstm_random_prior_scale", type=float, default=0.0,
+                        help="scale of fixed randomized ensemble prior functions")
+    parser.add_argument("--cstm_ood_rank_coef", type=float, default=0.0,
+                        help="coefficient for corruption-aware uncertainty ranking")
+    parser.add_argument("--cstm_ood_rank_margin", type=float, default=0.02,
+                        help="required uncertainty increase on harmful corruptions")
+    parser.add_argument("--cstm_ood_noise_std", type=float, default=0.2,
+                        help="teammate-position noise used only by OOD rank training")
+    parser.add_argument("--cstm_ood_mask_prob", type=float, default=0.3,
+                        help="teammate-vector mask probability for OOD rank training")
+    parser.add_argument("--cstm_ood_delay_prob", type=float, default=0.0,
+                        help="probability of one-step teammate-position delay augmentation")
+    parser.add_argument("--cstm_uncertainty_cal_coef", type=float, default=0.0,
+                        help="coefficient for continuous uncertainty-risk calibration")
+    parser.add_argument("--cstm_uncertainty_target_scale", type=float, default=0.05,
+                        help="maximum JS target assigned to prediction risk")
+    parser.add_argument("--cstm_uncertainty_corr_coef", type=float, default=0.0,
+                        help="coefficient for uncertainty-risk correlation loss")
+    parser.add_argument("--cstm_use_uncertainty_feature", action="store_true",
+                        default=False,
+                        help="feed ensemble disagreement to the always-on teammate policy")
     parser.add_argument("--cstm_disable_teammate_policy", action="store_false",
                         dest="cstm_use_teammate_policy", default=True,
                         help="use the unchanged MAPPO action path (stage-1 equivalence check)")
