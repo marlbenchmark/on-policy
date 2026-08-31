@@ -68,6 +68,8 @@ def load_actors(args, device):
     b1_args.cstm_num_heads = 1
     b1_args.cstm_use_uncertainty_feature = False
     b1_args.cstm_random_prior_scale = 0.0
+    b1_args.cstm_use_separate_detector = False
+    b1_args.cstm_detector_aux_coef = 0.0
     b1 = B1Actor(
         b1_args, space_env.observation_space[0], space_env.action_space[0],
         args.num_agents, device)
@@ -75,7 +77,8 @@ def load_actors(args, device):
     b2_args = copy.deepcopy(common)
     b2_args.algorithm_name = "ua_rep_mappo"
     b2_args.cstm_num_heads = 3
-    b2_args.cstm_use_uncertainty_feature = True
+    if not b2_args.cstm_use_separate_detector:
+        b2_args.cstm_use_uncertainty_feature = True
     b2 = B1Actor(
         b2_args, space_env.observation_space[0], space_env.action_space[0],
         args.num_agents, device)

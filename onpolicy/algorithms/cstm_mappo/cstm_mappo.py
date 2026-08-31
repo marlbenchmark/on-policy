@@ -16,6 +16,9 @@ class CSTM_MAPPO(R_MAPPO):
         if not self._use_recurrent_policy:
             raise ValueError("CSTM teammate modelling requires recurrent policy")
         self.aux_coef = args.cstm_aux_coef
+        self.detector_aux_coef = args.cstm_detector_aux_coef
+        self.use_separate_detector = args.cstm_use_separate_detector
+        self.detector_only = args.cstm_detector_only
         self.num_heads = args.cstm_num_heads
         self.bootstrap_prob = args.cstm_bootstrap_prob
         if not 0 < self.bootstrap_prob <= 1:
@@ -42,6 +45,12 @@ class CSTM_MAPPO(R_MAPPO):
             raise ValueError("cstm_uncertainty_cal_coef must be non-negative")
         if self.uncertainty_corr_coef < 0:
             raise ValueError("cstm_uncertainty_corr_coef must be non-negative")
+        if self.detector_aux_coef < 0:
+            raise ValueError("cstm_detector_aux_coef must be non-negative")
+        if self.use_separate_detector and self.num_heads < 2:
+            raise ValueError("separate uncertainty detector requires multiple heads")
+        if self.detector_only and not self.use_separate_detector:
+            raise ValueError("detector-only training requires a separate detector")
         if not 0 < self.uncertainty_target_scale <= 1:
             raise ValueError("cstm_uncertainty_target_scale must be in (0, 1]")
 
@@ -152,6 +161,24 @@ class CSTM_MAPPO(R_MAPPO):
             per_target_loss * bootstrap_masks).sum() / supervised_count
         valid_count = target_masks.sum().clamp_min(1.0)
 
+        detector_logits = teammate_logits
+        detector_mean_probs = F.softmax(detector_logits, dim=-1).mean(dim=1)
+        detector_uncertainty = teammate_uncertainty
+        detector_prediction_loss = torch.zeros((), device=self.device)
+        if self.use_separate_detector:
+            detector_logits, detector_mean_probs, detector_uncertainty, _ = \
+                self.policy.actor.detector_outputs(
+                    obs_batch, rnn_states_batch, masks_batch)
+            if tuple(detector_logits.shape) != tuple(teammate_logits.shape):
+                raise ValueError("detector and policy ensemble shapes must match")
+            detector_per_target_loss = F.cross_entropy(
+                detector_logits.reshape(-1, action_dim),
+                expanded_targets.reshape(-1), reduction="none").reshape(
+                    batch_size, num_heads, num_teammates)
+            detector_prediction_loss = (
+                detector_per_target_loss * bootstrap_masks
+            ).sum() / supervised_count
+
         ood_rank_loss = torch.zeros((), device=self.device)
         ood_harmful_fraction = torch.zeros((), device=self.device)
         ood_clean_uncertainty = torch.zeros((), device=self.device)
@@ -165,9 +192,9 @@ class CSTM_MAPPO(R_MAPPO):
             corrupted_obs = self._corrupt_teammate_positions(
                 obs_batch, masks_batch)
             _, corrupt_mean_probs, corrupt_uncertainty, _ = \
-                self.policy.actor.teammate_outputs(
+                self.policy.actor.detector_outputs(
                     corrupted_obs, rnn_states_batch, masks_batch)
-            clean_mean_probs = F.softmax(teammate_logits, dim=-1).mean(dim=1)
+            clean_mean_probs = detector_mean_probs
             clean_true_probs = clean_mean_probs.gather(
                 -1, targets.unsqueeze(-1)).squeeze(-1).clamp_min(1e-8)
             corrupt_true_probs = corrupt_mean_probs.gather(
@@ -181,11 +208,11 @@ class CSTM_MAPPO(R_MAPPO):
             if harmful_count > 0:
                 rank_violation = F.relu(
                     self.ood_rank_margin
-                    - (corrupt_uncertainty - teammate_uncertainty))
+                    - (corrupt_uncertainty - detector_uncertainty))
                 ood_rank_loss = (
                     rank_violation * harmful).sum() / harmful_count
                 ood_clean_uncertainty = (
-                    teammate_uncertainty * harmful).sum() / harmful_count
+                    detector_uncertainty * harmful).sum() / harmful_count
                 ood_corrupt_uncertainty = (
                     corrupt_uncertainty * harmful).sum() / harmful_count
             ood_harmful_fraction = harmful.sum() / valid_count
@@ -199,7 +226,7 @@ class CSTM_MAPPO(R_MAPPO):
                 corrupt_risk_target = self.uncertainty_target_scale * (
                     1.0 - corrupt_true_probs.detach())
                 clean_calibration = (
-                    (teammate_uncertainty - clean_risk_target).square()
+                    (detector_uncertainty - clean_risk_target).square()
                     * target_masks).sum() / valid_count
                 corrupt_calibration = (
                     (corrupt_uncertainty - corrupt_risk_target).square()
@@ -211,7 +238,7 @@ class CSTM_MAPPO(R_MAPPO):
                 clean_risk = (1.0 - clean_true_probs.detach())[valid]
                 corrupt_risk = (1.0 - corrupt_true_probs.detach())[valid]
                 clean_uncertainty_risk_correlation = self._correlation(
-                    teammate_uncertainty[valid], clean_risk)
+                    detector_uncertainty[valid], clean_risk)
                 corrupt_uncertainty_risk_correlation = self._correlation(
                     corrupt_uncertainty[valid], corrupt_risk)
                 uncertainty_correlation_loss = 1.0 - 0.5 * (
@@ -219,35 +246,61 @@ class CSTM_MAPPO(R_MAPPO):
                     + corrupt_uncertainty_risk_correlation)
 
         self.policy.actor_optimizer.zero_grad()
-        actor_loss = (policy_action_loss - dist_entropy * self.entropy_coef
-                      + self.aux_coef * team_prediction_loss
-                      + self.ood_rank_coef * ood_rank_loss
-                      + self.uncertainty_cal_coef
-                      * uncertainty_calibration_loss
-                      + self.uncertainty_corr_coef
-                      * uncertainty_correlation_loss)
+        if self.policy.detector_optimizer is not None:
+            self.policy.detector_optimizer.zero_grad()
+        policy_actor_loss = (
+            policy_action_loss - dist_entropy * self.entropy_coef
+            + self.aux_coef * team_prediction_loss)
+        uncertainty_objective = (
+            self.ood_rank_coef * ood_rank_loss
+            + self.uncertainty_cal_coef * uncertainty_calibration_loss
+            + self.uncertainty_corr_coef * uncertainty_correlation_loss)
+        detector_loss = (
+            self.detector_aux_coef * detector_prediction_loss
+            + uncertainty_objective)
+        actor_loss = policy_actor_loss
+        if not self.use_separate_detector:
+            actor_loss = actor_loss + uncertainty_objective
         if update_actor:
-            actor_loss.backward()
-        if self._use_max_grad_norm:
-            actor_grad_norm = nn.utils.clip_grad_norm_(
-                self.policy.actor.parameters(), self.max_grad_norm)
-        else:
-            actor_grad_norm = get_gard_norm(self.policy.actor.parameters())
-        self.policy.actor_optimizer.step()
+            if not self.detector_only:
+                actor_loss.backward()
+            if self.policy.detector_optimizer is not None:
+                detector_loss.backward()
+        actor_grad_norm = torch.zeros((), device=self.device)
+        if not self.detector_only:
+            if self._use_max_grad_norm:
+                actor_grad_norm = nn.utils.clip_grad_norm_(
+                    self.policy.actor_parameters, self.max_grad_norm)
+            else:
+                actor_grad_norm = get_gard_norm(self.policy.actor_parameters)
+        detector_grad_norm = torch.zeros((), device=self.device)
+        if self.policy.detector_parameters:
+            if self._use_max_grad_norm:
+                detector_grad_norm = nn.utils.clip_grad_norm_(
+                    self.policy.detector_parameters, self.max_grad_norm)
+            else:
+                detector_grad_norm = get_gard_norm(
+                    self.policy.detector_parameters)
+        if not self.detector_only:
+            self.policy.actor_optimizer.step()
+        if self.policy.detector_optimizer is not None:
+            self.policy.detector_optimizer.step()
 
         value_loss = self.cal_value_loss(
             values, value_preds_batch, return_batch, active_masks_batch)
         self.policy.critic_optimizer.zero_grad()
-        (value_loss * self.value_loss_coef).backward()
-        if self._use_max_grad_norm:
-            critic_grad_norm = nn.utils.clip_grad_norm_(
-                self.policy.critic.parameters(), self.max_grad_norm)
-        else:
-            critic_grad_norm = get_gard_norm(self.policy.critic.parameters())
-        self.policy.critic_optimizer.step()
+        critic_grad_norm = torch.zeros((), device=self.device)
+        if not self.detector_only:
+            (value_loss * self.value_loss_coef).backward()
+            if self._use_max_grad_norm:
+                critic_grad_norm = nn.utils.clip_grad_norm_(
+                    self.policy.critic.parameters(), self.max_grad_norm)
+            else:
+                critic_grad_norm = get_gard_norm(self.policy.critic.parameters())
+            self.policy.critic_optimizer.step()
 
         with torch.no_grad():
-            head_probs = F.softmax(teammate_logits, dim=-1)
+            head_probs = F.softmax(detector_logits, dim=-1)
             mean_probs = head_probs.mean(dim=1)
             eps = torch.finfo(head_probs.dtype).eps
             predictive_entropy = -(
@@ -274,7 +327,7 @@ class CSTM_MAPPO(R_MAPPO):
                           / denom.clamp_min(1.0))
                 recalls.append(recall)
 
-            head_predictions = teammate_logits.argmax(dim=-1)
+            head_predictions = detector_logits.argmax(dim=-1)
             per_head_accuracies = []
             for head in range(num_heads):
                 head_accuracy = (
@@ -289,8 +342,8 @@ class CSTM_MAPPO(R_MAPPO):
                 (1.0 - majority_vote_fraction) * target_masks
             ).sum() / valid_count
             mean_uncertainty = (
-                teammate_uncertainty * target_masks).sum() / valid_count
-            valid_uncertainty = teammate_uncertainty[target_masks.bool()]
+                detector_uncertainty * target_masks).sum() / valid_count
+            valid_uncertainty = detector_uncertainty[target_masks.bool()]
             uncertainty_std = (valid_uncertainty.std(unbiased=False)
                                if valid_uncertainty.numel()
                                else torch.zeros((), device=self.device))
@@ -333,8 +386,11 @@ class CSTM_MAPPO(R_MAPPO):
             "policy_loss": policy_action_loss,
             "dist_entropy": dist_entropy,
             "actor_grad_norm": actor_grad_norm,
+            "detector_grad_norm": detector_grad_norm,
             "ratio": imp_weights.mean(),
             "team_prediction_loss": team_prediction_loss,
+            "detector_prediction_loss": detector_prediction_loss.detach(),
+            "detector_loss": detector_loss.detach(),
             "team_action_accuracy": accuracy,
             "majority_action_accuracy": majority_accuracy,
             "mean_uncertainty": mean_uncertainty,

@@ -6,6 +6,7 @@ from gym import spaces
 from cstm_test_utils import make_args
 from onpolicy.algorithms.cstm_mappo.algorithm.dual_policy_actor import B1Actor
 from onpolicy.algorithms.cstm_mappo.algorithm.teammate_model import TeammateModel
+from onpolicy.algorithms.cstm_mappo.algorithm.cstm_policy import CSTMPolicy
 from onpolicy.utils.cstm_buffer import CSTMReplayBuffer
 
 
@@ -163,6 +164,101 @@ def test_uncertainty_override_changes_only_policy_input():
     torch.testing.assert_close(fixed_probs, mean_probs)
     torch.testing.assert_close(zero_disagreement, disagreement)
     torch.testing.assert_close(fixed_disagreement, disagreement)
+
+
+def test_separate_detector_is_gradient_and_optimizer_isolated():
+    torch.manual_seed(59)
+    args = make_args(
+        algorithm_name="ua_rep_mappo", cstm_num_heads=3,
+        cstm_random_prior_scale=0.5,
+        cstm_use_separate_detector=True,
+        cstm_detector_aux_coef=0.1)
+    obs_space = spaces.Box(-1, 1, shape=(18,), dtype=np.float32)
+    cent_obs_space = spaces.Box(-1, 1, shape=(54,), dtype=np.float32)
+    action_space = spaces.Discrete(5)
+    policy = CSTMPolicy(
+        args, obs_space, cent_obs_space, action_space)
+    actor = policy.actor
+
+    assert actor.uncertainty_detector is not None
+    assert len(actor.teammate_model.prior_decoders) == 0
+    assert len(actor.uncertainty_detector.prior_decoders) == 3
+    actor_parameter_ids = {
+        id(parameter)
+        for group in policy.actor_optimizer.param_groups
+        for parameter in group["params"]
+    }
+    detector_parameter_ids = {
+        id(parameter)
+        for group in policy.detector_optimizer.param_groups
+        for parameter in group["params"]
+    }
+    assert actor_parameter_ids.isdisjoint(detector_parameter_ids)
+    assert detector_parameter_ids == {
+        id(parameter) for parameter in actor.uncertainty_detector.parameters()
+    }
+
+    obs = np.random.randn(8, 18).astype(np.float32)
+    states = np.zeros((8, 1, args.hidden_size), dtype=np.float32)
+    masks = np.ones((8, 1), dtype=np.float32)
+    actor.zero_grad(set_to_none=True)
+    detector_logits, _, detector_uncertainty, _ = actor.detector_outputs(
+        obs, states, masks)
+    (detector_logits.square().mean() + detector_uncertainty.mean()).backward()
+    assert any(
+        parameter.grad is not None
+        for parameter in actor.uncertainty_detector.parameters()
+        if parameter.requires_grad)
+    assert all(
+        parameter.grad is None
+        for name, parameter in actor.named_parameters()
+        if not name.startswith("uncertainty_detector."))
+
+
+def test_detector_parameters_do_not_change_policy_actions():
+    torch.manual_seed(61)
+    args = make_args(
+        algorithm_name="ua_rep_mappo", cstm_num_heads=3,
+        cstm_random_prior_scale=0.5,
+        cstm_use_separate_detector=True)
+    actor = B1Actor(
+        args, spaces.Box(-1, 1, shape=(18,), dtype=np.float32),
+        spaces.Discrete(5), args.num_agents)
+    obs = np.random.randn(16, 18).astype(np.float32)
+    states = np.zeros((16, 1, args.hidden_size), dtype=np.float32)
+    masks = np.ones((16, 1), dtype=np.float32)
+    with torch.no_grad():
+        before = actor(obs, states, masks, deterministic=True)
+        before_diagnostics = actor.teammate_diagnostics(obs, states, masks)
+        for parameter in actor.uncertainty_detector.parameters():
+            parameter.add_(torch.randn_like(parameter) * 3.0)
+        after = actor(obs, states, masks, deterministic=True)
+        after_diagnostics = actor.teammate_diagnostics(obs, states, masks)
+    for expected, actual in zip(before, after):
+        torch.testing.assert_close(expected, actual)
+    assert not torch.allclose(
+        before_diagnostics[0], after_diagnostics[0])
+
+
+def test_separate_detector_checkpoint_round_trip():
+    torch.manual_seed(67)
+    args = make_args(
+        algorithm_name="ua_rep_mappo", cstm_num_heads=3,
+        cstm_random_prior_scale=0.5,
+        cstm_use_separate_detector=True)
+    obs_space = spaces.Box(-1, 1, shape=(18,), dtype=np.float32)
+    action_space = spaces.Discrete(5)
+    actor = B1Actor(args, obs_space, action_space, args.num_agents)
+    restored = B1Actor(args, obs_space, action_space, args.num_agents)
+    restored.load_state_dict(actor.state_dict())
+    obs = np.random.randn(8, 18).astype(np.float32)
+    states = np.zeros((8, 1, args.hidden_size), dtype=np.float32)
+    masks = np.ones((8, 1), dtype=np.float32)
+    with torch.no_grad():
+        expected = actor.teammate_diagnostics(obs, states, masks)
+        actual = restored.teammate_diagnostics(obs, states, masks)
+    for expected_value, actual_value in zip(expected, actual):
+        torch.testing.assert_close(expected_value, actual_value)
 
 
 def test_three_heads_overfit_fixed_minibatch_without_collapsing_parameters():

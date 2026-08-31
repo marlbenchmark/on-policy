@@ -233,6 +233,14 @@ def get_config():
                         help="per-target inclusion probability for each bootstrap head")
     parser.add_argument("--cstm_random_prior_scale", type=float, default=0.0,
                         help="scale of fixed randomized ensemble prior functions")
+    parser.add_argument("--cstm_use_separate_detector", action="store_true",
+                        default=False,
+                        help="train uncertainty in a policy-gradient-isolated detector")
+    parser.add_argument("--cstm_detector_aux_coef", type=float, default=0.0,
+                        help="clean teammate-prediction coefficient for detector")
+    parser.add_argument("--cstm_detector_only", action="store_true",
+                        default=False,
+                        help="freeze actor/critic and train only separate detector")
     parser.add_argument("--cstm_ood_rank_coef", type=float, default=0.0,
                         help="coefficient for corruption-aware uncertainty ranking")
     parser.add_argument("--cstm_ood_rank_margin", type=float, default=0.02,

@@ -24,11 +24,21 @@ class B1Actor(R_Actor):
         self.use_teammate_policy = args.cstm_use_teammate_policy
         self.num_heads = args.cstm_num_heads
         self.use_uncertainty_feature = args.cstm_use_uncertainty_feature
+        self.use_separate_detector = args.cstm_use_separate_detector
         self.uncertainty_override = None
+        policy_prior_scale = (
+            0.0 if self.use_separate_detector
+            else args.cstm_random_prior_scale)
         self.teammate_model = TeammateModel(
             self.hidden_size, args.cstm_latent_dim, num_agents - 1,
             action_space.n, self._use_orthogonal, args.cstm_num_heads,
-            args.cstm_random_prior_scale)
+            policy_prior_scale)
+        self.uncertainty_detector = None
+        if self.use_separate_detector:
+            self.uncertainty_detector = TeammateModel(
+                self.hidden_size, args.cstm_latent_dim, num_agents - 1,
+                action_space.n, self._use_orthogonal, args.cstm_num_heads,
+                args.cstm_random_prior_scale)
         self.tm_fusion = nn.Linear(self.hidden_size + args.cstm_latent_dim,
                                    self.hidden_size)
         with torch.no_grad():
@@ -125,11 +135,20 @@ class B1Actor(R_Actor):
 
     @torch.no_grad()
     def teammate_diagnostics(self, obs, rnn_states, masks):
-        return self.teammate_outputs(obs, rnn_states, masks)
+        return self.detector_outputs(obs, rnn_states, masks)
 
     def teammate_outputs(self, obs, rnn_states, masks):
-        """Return teammate predictions with gradients for auxiliary training."""
+        """Return policy-branch predictions for clean auxiliary training."""
         local_features, rnn_states = self._features(obs, rnn_states, masks)
         _, head_logits, mean_probs, disagreement = self.teammate_model(
             local_features)
+        return head_logits, mean_probs, disagreement, rnn_states
+
+    def detector_outputs(self, obs, rnn_states, masks):
+        """Return detector predictions without a gradient path to policy features."""
+        if self.uncertainty_detector is None:
+            return self.teammate_outputs(obs, rnn_states, masks)
+        local_features, rnn_states = self._features(obs, rnn_states, masks)
+        _, head_logits, mean_probs, disagreement = \
+            self.uncertainty_detector(local_features.detach())
         return head_logits, mean_probs, disagreement, rnn_states

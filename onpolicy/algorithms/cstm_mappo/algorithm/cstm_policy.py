@@ -19,9 +19,24 @@ class CSTMPolicy(R_MAPPOPolicy):
 
         self.actor = B1Actor(args, obs_space, act_space, args.num_agents, device)
         self.critic = R_Critic(args, cent_obs_space, device)
+        detector_parameter_ids = set()
+        self.detector_parameters = []
+        if self.actor.uncertainty_detector is not None:
+            self.detector_parameters = list(
+                self.actor.uncertainty_detector.parameters())
+            detector_parameter_ids = {
+                id(parameter) for parameter in self.detector_parameters}
+        self.actor_parameters = [
+            parameter for parameter in self.actor.parameters()
+            if id(parameter) not in detector_parameter_ids]
         self.actor_optimizer = torch.optim.Adam(
-            self.actor.parameters(), lr=self.lr, eps=self.opti_eps,
+            self.actor_parameters, lr=self.lr, eps=self.opti_eps,
             weight_decay=self.weight_decay)
+        self.detector_optimizer = None
+        if self.detector_parameters:
+            self.detector_optimizer = torch.optim.Adam(
+                self.detector_parameters, lr=self.lr, eps=self.opti_eps,
+                weight_decay=self.weight_decay)
         self.critic_optimizer = torch.optim.Adam(
             self.critic.parameters(), lr=self.critic_lr, eps=self.opti_eps,
             weight_decay=self.weight_decay)
