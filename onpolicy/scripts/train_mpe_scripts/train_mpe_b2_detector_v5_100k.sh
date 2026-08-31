@@ -1,0 +1,43 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd)
+
+cd "$ROOT"
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 /root/miniconda3/bin/python \
+  onpolicy/scripts/train/train_mpe.py \
+  --env_name MPE \
+  --algorithm_name ua_rep_mappo \
+  --experiment_name b2_detector_v5_100k \
+  --scenario_name simple_spread \
+  --num_agents 3 \
+  --num_landmarks 3 \
+  --seed 1 \
+  --n_training_threads 1 \
+  --n_rollout_threads 128 \
+  --num_mini_batch 1 \
+  --episode_length 25 \
+  --num_env_steps 100000 \
+  --ppo_epoch 10 \
+  --use_ReLU \
+  --gain 0.01 \
+  --lr 7e-4 \
+  --critic_lr 7e-4 \
+  --model_dir onpolicy/scripts/results/MPE/simple_spread/ua_rep_mappo/b2_ua_rep_mappo/run1/models \
+  --cstm_latent_dim 32 \
+  --cstm_aux_coef 0.1 \
+  --cstm_num_heads 3 \
+  --cstm_bootstrap_prob 0.5 \
+  --cstm_random_prior_scale 0.5 \
+  --cstm_use_separate_detector \
+  --cstm_detector_aux_coef 0.1 \
+  --cstm_ood_rank_coef 1.0 \
+  --cstm_ood_rank_margin 0.02 \
+  --cstm_ood_noise_std 0.2 \
+  --cstm_ood_mask_prob 0.3 \
+  --cstm_ood_delay_prob 0.3 \
+  --cstm_uncertainty_cal_coef 1.0 \
+  --cstm_uncertainty_target_scale 0.05 \
+  --cstm_uncertainty_corr_coef 0.01 \
+  --use_wandb

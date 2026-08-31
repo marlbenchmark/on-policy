@@ -47,7 +47,7 @@ class MPERunner(Runner):
                 self.save()
 
             # log information
-            if episode % self.log_interval == 0:
+            if episode % self.log_interval == 0 or episode == episodes - 1:
                 end = time.time()
                 print("\n Scenario {} Algo {} Exp {} updates {}/{} episodes, total num timesteps {}/{}, FPS {}.\n"
                         .format(self.all_args.scenario_name,

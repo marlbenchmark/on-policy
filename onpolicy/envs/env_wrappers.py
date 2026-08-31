@@ -7,6 +7,13 @@ from multiprocessing import Process, Pipe
 from abc import ABC, abstractmethod
 from onpolicy.utils.util import tile_images
 
+def _stack_or_keep(items):
+    try:
+        return np.stack(items)
+    except ValueError:
+        return list(items)
+
+
 class CloudpickleWrapper(object):
     """
     Uses cloudpickle to serialize contents (otherwise multiprocessing tries to use pickle)
@@ -206,13 +213,13 @@ class GuardSubprocVecEnv(ShareVecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
-        return np.stack(obs), np.stack(rews), np.stack(dones), infos
+        return _stack_or_keep(obs), np.stack(rews), np.stack(dones), infos
 
     def reset(self):
         for remote in self.remotes:
             remote.send(('reset', None))
         obs = [remote.recv() for remote in self.remotes]
-        return np.stack(obs)
+        return _stack_or_keep(obs)
 
     def reset_task(self):
         for remote in self.remotes:
@@ -263,13 +270,13 @@ class SubprocVecEnv(ShareVecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
-        return np.stack(obs), np.stack(rews), np.stack(dones), infos
+        return _stack_or_keep(obs), np.stack(rews), np.stack(dones), infos
 
     def reset(self):
         for remote in self.remotes:
             remote.send(('reset', None))
         obs = [remote.recv() for remote in self.remotes]
-        return np.stack(obs)
+        return _stack_or_keep(obs)
 
 
     def reset_task(self):
@@ -457,13 +464,13 @@ class ChooseSimpleSubprocVecEnv(ShareVecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
-        return np.stack(obs), np.stack(rews), np.stack(dones), infos
+        return _stack_or_keep(obs), np.stack(rews), np.stack(dones), infos
 
     def reset(self, reset_choose):
         for remote, choose in zip(self.remotes, reset_choose):
             remote.send(('reset', choose))
         obs = [remote.recv() for remote in self.remotes]
-        return np.stack(obs)
+        return _stack_or_keep(obs)
 
     def render(self, mode="rgb_array"):
         for remote in self.remotes:
@@ -631,13 +638,13 @@ class ChooseGuardSubprocVecEnv(ShareVecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
-        return np.stack(obs), np.stack(rews), np.stack(dones), infos
+        return _stack_or_keep(obs), np.stack(rews), np.stack(dones), infos
 
     def reset(self, reset_choose):
         for remote, choose in zip(self.remotes, reset_choose):
             remote.send(('reset', choose))
         obs = [remote.recv() for remote in self.remotes]
-        return np.stack(obs)
+        return _stack_or_keep(obs)
 
     def reset_task(self):
         for remote in self.remotes:
@@ -671,7 +678,10 @@ class DummyVecEnv(ShareVecEnv):
 
     def step_wait(self):
         results = [env.step(a) for (a, env) in zip(self.actions, self.envs)]
-        obs, rews, dones, infos = map(np.array, zip(*results))
+        obs, rews, dones, infos = zip(*results)
+        obs = _stack_or_keep(obs)
+        rews = np.array(rews)
+        dones = np.array(dones)
 
         for (i, done) in enumerate(dones):
             if 'bool' in done.__class__.__name__:
@@ -686,7 +696,7 @@ class DummyVecEnv(ShareVecEnv):
 
     def reset(self):
         obs = [env.reset() for env in self.envs]
-        return np.array(obs)
+        return _stack_or_keep(obs)
 
     def close(self):
         for env in self.envs:
@@ -799,14 +809,17 @@ class ChooseSimpleDummyVecEnv(ShareVecEnv):
 
     def step_wait(self):
         results = [env.step(a) for (a, env) in zip(self.actions, self.envs)]
-        obs, rews, dones, infos = map(np.array, zip(*results))
+        obs, rews, dones, infos = zip(*results)
+        obs = _stack_or_keep(obs)
+        rews = np.array(rews)
+        dones = np.array(dones)
         self.actions = None
         return obs, rews, dones, infos
 
     def reset(self, reset_choose):
         obs = [env.reset(choose)
                    for (env, choose) in zip(self.envs, reset_choose)]
-        return np.array(obs)
+        return _stack_or_keep(obs)
 
     def close(self):
         for env in self.envs:
