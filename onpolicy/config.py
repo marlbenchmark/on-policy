@@ -158,7 +158,7 @@ def get_config():
 
     # prepare parameters
     parser.add_argument("--algorithm_name", type=str,
-                        default='mappo', choices=["rmappo", "mappo", "happo", "hatrpo", "mat", "mat_dec"])
+                        default='mappo', choices=["rmappo", "mappo", "cstm_mappo", "happo", "hatrpo", "mat", "mat_dec"])
 
     parser.add_argument("--experiment_name", type=str, default="check", help="an identifier to distinguish different experiment.")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for numpy/torch")
@@ -219,6 +219,17 @@ def get_config():
     parser.add_argument("--recurrent_N", type=int, default=1, help="The number of recurrent layers.")
     parser.add_argument("--data_chunk_length", type=int, default=10,
                         help="Time length of chunks used to train a recurrent_policy")
+
+    # CSTM-MAPPO / B1 teammate modelling parameters.  B1 uses one decoder
+    # head and always executes the teammate-aware policy; later CSTM stages
+    # deliberately live behind separate options rather than changing B1.
+    parser.add_argument("--cstm_latent_dim", type=int, default=32,
+                        help="dimension of the LIAM-style teammate representation")
+    parser.add_argument("--cstm_aux_coef", type=float, default=0.1,
+                        help="coefficient for teammate-action cross entropy")
+    parser.add_argument("--cstm_disable_teammate_policy", action="store_false",
+                        dest="cstm_use_teammate_policy", default=True,
+                        help="use the unchanged MAPPO action path (stage-1 equivalence check)")
 
     # optimizer parameters
     parser.add_argument("--lr", type=float, default=5e-4,
