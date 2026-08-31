@@ -66,6 +66,9 @@ class Runner(object):
         if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
             from onpolicy.algorithms.mat.mat_trainer import MATTrainer as TrainAlgo
             from onpolicy.algorithms.mat.algorithm.transformer_policy import TransformerPolicy as Policy
+        elif self.algorithm_name == "selective_mappo":
+            from onpolicy.algorithms.selective_mappo.selective_mappo import Selective_MAPPO as TrainAlgo
+            from onpolicy.algorithms.selective_mappo.selective_policy import SelectivePolicy as Policy
         elif self.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
             from onpolicy.algorithms.cstm_mappo.cstm_mappo import CSTM_MAPPO as TrainAlgo
             from onpolicy.algorithms.cstm_mappo.algorithm.cstm_policy import CSTMPolicy as Policy
@@ -95,7 +98,13 @@ class Runner(object):
             self.trainer = TrainAlgo(self.all_args, self.policy, device = self.device)
         
         # buffer
-        if self.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
+        if self.algorithm_name == "selective_mappo":
+            from onpolicy.utils.selective_buffer import SelectiveReplayBuffer
+            self.buffer = SelectiveReplayBuffer(
+                self.all_args, self.num_agents,
+                self.envs.observation_space[0], share_observation_space,
+                self.envs.action_space[0])
+        elif self.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
             from onpolicy.utils.cstm_buffer import CSTMReplayBuffer
             self.buffer = CSTMReplayBuffer(self.all_args,
                                            self.num_agents,
@@ -166,6 +175,13 @@ class Runner(object):
         if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
             self.policy.restore(model_dir)
         else:
+            if self.algorithm_name == "selective_mappo":
+                if not self.all_args.cstm_b0_model_dir:
+                    raise ValueError(
+                        "selective_mappo requires --cstm_b0_model_dir")
+                self.policy.load_initial_checkpoints(
+                    model_dir, self.all_args.cstm_b0_model_dir)
+                return
             policy_actor_state_dict = torch.load(str(self.model_dir) + '/actor.pt')
             if self.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
                 incompatible = self.policy.actor.load_state_dict(
