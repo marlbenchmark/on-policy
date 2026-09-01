@@ -152,7 +152,18 @@ def main(args):
 
     # run experiments
     if all_args.share_policy:
-        if all_args.algorithm_name == "selective_mappo":
+        # Robust baselines reuse the original policy/trainer and replace only
+        # the rollout runner, which corrupts actor observations while leaving
+        # centralized critic inputs clean.
+        if all_args.mpe_use_corruption_training:
+            if all_args.algorithm_name == "selective_mappo":
+                raise ValueError(
+                    "selective_mappo already has its own corruption runner")
+            if all_args.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
+                from onpolicy.runner.shared.robust_mpe_runner import RobustCSTMMPErunner as Runner
+            else:
+                from onpolicy.runner.shared.robust_mpe_runner import RobustMPERunner as Runner
+        elif all_args.algorithm_name == "selective_mappo":
             from onpolicy.runner.shared.selective_mpe_runner import SelectiveMPERunner as Runner
         elif all_args.algorithm_name in ("cstm_mappo", "ua_rep_mappo"):
             from onpolicy.runner.shared.cstm_mpe_runner import CSTMMPErunner as Runner

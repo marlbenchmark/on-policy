@@ -295,6 +295,9 @@ def get_config():
                         default=[0.10, 0.20, 0.30, 0.50])
     parser.add_argument("--cstm_selector_delay_levels", type=int, nargs="+",
                         default=[1, 2, 3])
+    parser.add_argument("--mpe_use_corruption_training", action="store_true",
+                        default=False,
+                        help="train B0/B2 on the same MPE corruption mixture as B4")
 
     # optimizer parameters
     parser.add_argument("--lr", type=float, default=5e-4,
