@@ -13,6 +13,7 @@ import numpy as np
 ALGORITHMS = ("B0", "B2", "B3", "RISK_SOFT", "B4",
               "ROBUST_B0", "ROBUST_B2")
 COMPARISONS = (
+    ("ROBUST_B2", "ROBUST_B0"),
     ("ROBUST_B0", "RISK_SOFT"),
     ("ROBUST_B2", "RISK_SOFT"),
     ("ROBUST_B2", "B4"),
