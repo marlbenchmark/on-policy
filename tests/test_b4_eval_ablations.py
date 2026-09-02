@@ -2,6 +2,7 @@ import numpy as np
 
 from onpolicy.scripts.eval.eval_mpe_b4 import (
     coverage_matched_random_gate,
+    parse_composite_condition,
     risk_only_b2_gate,
 )
 
@@ -29,7 +30,15 @@ def test_coverage_matched_random_gate_preserves_values_and_other_variants():
     assert not np.array_equal(shuffled[random_rows], gate[random_rows])
 
 
+def test_composite_condition_parser_preserves_order_and_levels():
+    condition = parse_composite_condition("noise=0.20+mask=0.30+delay=2")
+    assert condition == (
+        "noise+mask+delay", "0.2+0.3+2",
+        (("noise", 0.2), ("mask", 0.3), ("delay", 2)))
+
+
 if __name__ == "__main__":
     test_risk_only_gate_is_monotonic_and_centered()
     test_coverage_matched_random_gate_preserves_values_and_other_variants()
-    print("B4_EVAL_ABLATION_TESTS_PASSED 2")
+    test_composite_condition_parser_preserves_order_and_levels()
+    print("B4_EVAL_ABLATION_TESTS_PASSED 3")

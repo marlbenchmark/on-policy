@@ -1,0 +1,57 @@
+{
+  "suite_id": "robust_ood_v1",
+  "status": "frozen_before_evaluation",
+  "frozen_date": "2026-09-02",
+  "training_seeds": [1, 2, 3, 4, 5],
+  "evaluation_seed_start": 90000,
+  "evaluation_seed_end": 90199,
+  "episodes_per_condition": 200,
+  "clean_anchor": true,
+  "conditions": [
+    {"type": "clean", "level": 0.0, "class": "anchor"},
+    {"type": "noise", "level": 0.15, "class": "unseen_interpolation"},
+    {"type": "noise", "level": 0.25, "class": "unseen_interpolation"},
+    {"type": "noise", "level": 0.40, "class": "unseen_extrapolation"},
+    {"type": "mask", "level": 0.40, "class": "unseen_interpolation"},
+    {"type": "mask", "level": 0.60, "class": "unseen_extrapolation"},
+    {"type": "delay", "level": 4, "class": "unseen_extrapolation"},
+    {
+      "type": "noise+mask",
+      "levels": [0.20, 0.30],
+      "order": ["noise", "mask"],
+      "class": "unseen_composite"
+    },
+    {
+      "type": "noise+delay",
+      "levels": [0.20, 2],
+      "order": ["noise", "delay"],
+      "class": "unseen_composite"
+    },
+    {
+      "type": "mask+delay",
+      "levels": [0.30, 2],
+      "order": ["mask", "delay"],
+      "class": "unseen_composite"
+    }
+  ],
+  "training_support": {
+    "noise": [0.05, 0.10, 0.20, 0.30],
+    "mask": [0.10, 0.20, 0.30, 0.50],
+    "delay": [1, 2, 3],
+    "composites": []
+  },
+  "primary_comparisons": [
+    "ROBUST_B0-RISK_SOFT",
+    "ROBUST_B2-RISK_SOFT"
+  ],
+  "secondary_comparisons": [
+    "ROBUST_B2-B4",
+    "RISK_SOFT-B4",
+    "ROBUST_B0-B0",
+    "ROBUST_B2-B2"
+  ],
+  "aggregation": "equal condition mean within each training seed",
+  "inference": "paired Student t 95% CI over five training seeds",
+  "decision_rule": "positive only if the full paired 95% CI is above zero; negative only if below zero; otherwise inconclusive",
+  "anti_tuning_rule": "do not alter conditions, seeds, comparison priority, or decision rule after any OOD return is inspected"
+}

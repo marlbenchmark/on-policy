@@ -38,17 +38,73 @@ def parse_args():
                         default=[0.10, 0.20, 0.30, 0.50])
     parser.add_argument("--delay_steps", type=int, nargs="*",
                         default=[1, 2, 3])
+    parser.add_argument(
+        "--composite_conditions", type=str, nargs="*", default=[],
+        help=("ordered unseen corruptions, for example "
+              "noise=0.20+mask=0.30; order is applied left-to-right"))
     parser.add_argument("--checkpoint_activation", choices=("tanh", "relu"),
                         default="tanh")
     parser.add_argument("--write_step_log", action="store_true")
     return parser.parse_args()
 
 
+def parse_composite_condition(text):
+    """Parse and label an ordered composition without hiding its components."""
+    specs = []
+    for item in text.split("+"):
+        try:
+            corruption_type, raw_level = item.split("=", 1)
+        except ValueError as exc:
+            raise ValueError("invalid composite condition: {}".format(text)) from exc
+        corruption_type = corruption_type.strip().lower()
+        if corruption_type not in ("noise", "mask", "delay"):
+            raise ValueError("unsupported composite corruption: {}".format(
+                corruption_type))
+        level = float(raw_level)
+        if level <= 0 or (corruption_type == "delay" and not level.is_integer()):
+            raise ValueError("invalid {} level: {}".format(
+                corruption_type, raw_level))
+        level = int(level) if corruption_type == "delay" else level
+        specs.append((corruption_type, level))
+    if len(specs) < 2:
+        raise ValueError("a composite condition needs at least two components")
+    name = "+".join(kind for kind, _ in specs)
+    label = "+".join(str(level) for _, level in specs)
+    return name, label, tuple(specs)
+
+
+class SequentialCorruptor:
+    """Apply a frozen list of corruptions left-to-right."""
+
+    def __init__(self, specs, num_agents, num_landmarks, seed):
+        self.corruptors = [
+            TeammatePositionCorruptor(
+                kind, level, num_agents, num_landmarks,
+                seed=seed + component_index * 104729)
+            for component_index, (kind, level) in enumerate(specs)
+        ]
+
+    def reset(self):
+        for corruptor in self.corruptors:
+            corruptor.reset()
+
+    def transform(self, observation):
+        for corruptor in self.corruptors:
+            observation = corruptor.transform(observation)
+        return observation
+
+
 def make_conditions(args):
-    conditions = [("clean", 0.0)]
-    conditions.extend(("noise", float(x)) for x in args.noise_stds if x > 0)
-    conditions.extend(("mask", float(x)) for x in args.mask_probs if x > 0)
-    conditions.extend(("delay", int(x)) for x in args.delay_steps if x > 0)
+    # The third item preserves the exact executable corruption specification.
+    conditions = [("clean", 0.0, (("clean", 0.0),))]
+    conditions.extend(("noise", float(x), (("noise", float(x)),))
+                      for x in args.noise_stds if x > 0)
+    conditions.extend(("mask", float(x), (("mask", float(x)),))
+                      for x in args.mask_probs if x > 0)
+    conditions.extend(("delay", int(x), (("delay", int(x)),))
+                      for x in args.delay_steps if x > 0)
+    conditions.extend(parse_composite_condition(text)
+                      for text in args.composite_conditions)
     return conditions
 
 
@@ -63,22 +119,13 @@ def basic(values):
 
 
 def risk_only_b2_gate(risk, threshold=0.03, scale=200.0):
-    """Return the B2 mixture weight for a fixed monotonic risk-only gate.
-
-    The returned value is a B2 weight, not a fallback probability.  Higher
-    detector risk therefore produces a smaller value and more B0 fallback.
-    """
+    """Fixed monotonic soft gate: high detector risk means less B2 use."""
     logits = np.clip(scale * (threshold - np.asarray(risk)), -60.0, 60.0)
     return 1.0 / (1.0 + np.exp(-logits))
 
 
 def coverage_matched_random_gate(b2_gate, variants, rng):
-    """Shuffle B4 gate values onto the random arm without changing coverage.
-
-    Shuffling is performed over the B4 batch/agent entries at one environment
-    step.  It preserves the exact multiset of gate values while destroying the
-    association between a context and its learned gate value.
-    """
+    """Assign shuffled B4 gate values to the random arm."""
     output = np.asarray(b2_gate).copy()
     targets = [index for index, variant in enumerate(variants)
                if variant == "MATCHED_RANDOM"]
@@ -116,7 +163,6 @@ def load_actor(args, device):
 
 
 def load_robust_actors(args, device):
-    """Load corruption-trained B0/B2 actors for the unified evaluator."""
     paths = (args.robust_b0_actor, args.robust_b2_actor)
     if paths == (None, None):
         return None
@@ -125,8 +171,6 @@ def load_robust_actors(args, device):
     common = copy.deepcopy(args)
     common.use_recurrent_policy = True
     common.use_naive_recurrent_policy = False
-    # ``--use_ReLU`` is an inverted legacy training flag (store_false).
-    # Evaluation uses the explicit checkpoint activation name instead.
     common.use_ReLU = args.checkpoint_activation == "relu"
     common.cstm_num_heads = 3
     common.cstm_use_separate_detector = False
@@ -154,9 +198,8 @@ def run_batch(args, actor, action_dim, condition, condition_index, seeds,
             env = MPEEnv(args)
             env.seed(seed)
             obs = np.asarray(env.reset(), dtype=np.float32)
-            corruptor = TeammatePositionCorruptor(
-                condition[0], condition[1], args.num_agents,
-                args.num_landmarks,
+            corruptor = SequentialCorruptor(
+                condition[2], args.num_agents, args.num_landmarks,
                 seed=seed * 1009 + condition_index * 9176)
             corruptor.reset()
             records.append({"seed": seed, "variant": variant, "env": env,
@@ -177,7 +220,6 @@ def run_batch(args, actor, action_dim, condition, condition_index, seeds,
     sums = {key: np.zeros(batch_size, dtype=np.float64)
             for key in metric_names}
     variant_names = [record["variant"] for record in records]
-    # Keep the random control reproducible for each condition and seed batch.
     random_rng = np.random.default_rng(
         condition_index * 1000003 + seeds[0] * 9176 + len(seeds))
 
